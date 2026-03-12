@@ -2,9 +2,11 @@
 IoT Air Quality Sensor Simulator for Jabalpur
 Generates realistic pollution readings for 25 locations across the city.
 """
-
+import requests
+import time
 import random, math
 from datetime import datetime
+API_URL = "http://127.0.0.1:8000/sensors/update"
 
 SENSOR_LOCATIONS = [
     {"name": "Jabalpur City Center",      "lat": 23.1815, "lon": 79.9864, "base_pm25": 65,  "type": "urban"},
@@ -99,9 +101,14 @@ def get_nearest_sensor(lat, lon):
             best_dist, best = d, loc
     return generate_sensor_reading(best)
 
-
 if __name__ == "__main__":
-    import json
-    readings = generate_all_sensors()
-    print(json.dumps(readings, indent=2))
-    print(f"\n  Generated {len(readings)} sensor readings")
+    while True:
+        readings = generate_all_sensors()
+
+        try:
+            requests.post(API_URL, json={"sensors": readings})
+            print(f"Sent {len(readings)} sensor readings")
+        except:
+            print("Backend not running")
+
+        time.sleep(10)

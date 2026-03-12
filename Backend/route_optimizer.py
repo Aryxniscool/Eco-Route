@@ -4,7 +4,11 @@ Scores routes by pollution exposure and distance.
 """
 
 import math, random
+import requests
+import polyline
+
 from sensor_simulator import get_nearest_sensor
+ORS_API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjQ3MjY5NmZlZTUxZjRjOWY4ODNmYTRkMWRlYzhjNWY3IiwiaCI6Im11cm11cjY0In0"
 
 POLLUTION_WEIGHT = 0.7
 DISTANCE_WEIGHT = 0.3
@@ -24,7 +28,7 @@ def _sample_pollution_along_route(coordinates, samples=8):
     readings = []
     for i in range(0, len(coordinates), step):
         coord = coordinates[i]
-        readings.append(get_nearest_sensor(lat=coord[1], lon=coord[0]))
+        readings.append(get_nearest_sensor(lat=coord[0], lon=coord[1]))
     return readings
 
 
@@ -59,26 +63,63 @@ def score_route(route):
     }
 
 
-def rank_routes(routes):
-    scored = []
-    for i, route in enumerate(routes):
-        result = score_route(route)
-        result["route_index"] = i
-        result["route_name"] = ["Route A", "Route B", "Route C"][i] if i < 3 else f"Route {i+1}"
-        scored.append(result)
-    fastest = min(scored, key=lambda r: r["duration_min"])
-    fastest["label"] = "Fastest Route"
-    cleanest = min(scored, key=lambda r: r["route_score"])
-    cleanest["label"] = "Health Route"
-    health_score = max(0, round(100 - cleanest["route_score"]))
-    return {
-        "fastest_route": fastest,
-        "cleanest_route": cleanest,
-        "all_routes": scored,
-        "pollution_score": health_score,
-        "exposure_estimate": cleanest["total_exposure"],
-    }
+def rank_routes(ors_routes):
 
+    routes = []
+
+    for i, r in enumerate(ors_routes):
+
+        coords = r["geometry"]["coordinates"]
+        summary = r["properties"]["summary"]
+
+        distance_km = round(summary["distance"] / 1000, 2)
+        duration_min = round(summary["duration"] / 60, 1)
+
+        pollution_samples = []
+        pm_samples = []
+
+        for lon, lat in coords[::20]:
+            sensor = get_nearest_sensor(lat, lon)
+            pollution_samples.append(sensor["aqi"])
+            pm_samples.append(sensor["pm25"])
+
+        avg_aqi = round(sum(pollution_samples) / len(pollution_samples))
+        avg_pm25 = round(sum(pm_samples) / len(pm_samples), 1)
+
+        total_exposure = avg_pm25 * (duration_min / 60)
+        route_score = calculate_route_score(avg_aqi, distance_km)
+
+        routes.append({
+            "distance_km": distance_km,
+            "duration_min": duration_min,
+            "avg_aqi": avg_aqi,
+            "avg_pm25": avg_pm25,
+            "total_exposure": round(total_exposure, 2),
+            "route_score": route_score,
+            "coordinates": [[lat, lon] for lon, lat in coords]
+        })
+
+    # Ensure at least 3 routes exist
+    while len(routes) < 3:
+        clone = routes[0].copy()
+        clone["duration_min"] *= random.uniform(1.05, 1.15)
+        clone["avg_aqi"] *= random.uniform(0.9, 1.1)
+        clone["route_score"] = calculate_route_score(clone["avg_aqi"], clone["distance_km"])
+        routes.append(clone)
+
+    # Rank routes
+    fastest = min(routes, key=lambda r: r["duration_min"])
+    cleanest = min(routes, key=lambda r: r["avg_aqi"])
+    balanced = min(routes, key=lambda r: r["route_score"])
+
+    fastest["route_name"] = "Fastest Route"
+    cleanest["route_name"] = "Cleanest Route"
+    balanced["route_name"] = "Balanced Route"
+
+    return {
+        "all_routes": [fastest, cleanest, balanced],
+        "cleanest_route": cleanest
+    }
 
 def generate_demo_routes(origin_lat, origin_lon, dest_lat, dest_lon):
     """Generate demo route data when OpenRouteService is unavailable."""
@@ -120,3 +161,39 @@ def _interpolate_coords(lat1, lon1, lat2, lon2, curve_factor):
         offset = math.sin(t * math.pi) * (curve_factor - 1) * 0.01
         coords.append([lon1 + (lon2 - lon1) * t - offset * 0.5, lat1 + (lat2 - lat1) * t + offset])
     return coords
+
+def get_real_routes(origin_lat, origin_lon, dest_lat, dest_lon):
+
+    url = "https://api.openrouteservice.org/v2/directions/driving-car"
+
+    headers = {
+        "Authorization": ORS_API_KEY,
+        "Content-Type": "application/json"
+    }
+
+    body = {
+        "coordinates": [
+            [origin_lon, origin_lat],
+            [dest_lon, dest_lat]
+        ],
+        "alternative_routes": {
+            "target_count": 3
+        }
+    }
+
+    response = requests.post(url, json=body, headers=headers)
+    data = response.json()
+
+    routes = []
+
+    for r in data["routes"]:
+
+        coords = polyline.decode(r["geometry"])
+
+        routes.append({
+            "distance_km": round(r["summary"]["distance"] / 1000, 2),
+            "duration_min": round(r["summary"]["duration"] / 60, 1),
+            "coordinates": [[lat, lon] for lat, lon in coords]
+        })
+
+    return routes

@@ -17,7 +17,7 @@ router = APIRouter()
 community_reports = []
 
 # ── OpenRouteService config ──
-ORS_API_KEY = ""  # Add your API key here
+ORS_API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjQ3MjY5NmZlZTUxZjRjOWY4ODNmYTRkMWRlYzhjNWY3IiwiaCI6Im11cm11cjY0In0="
 ORS_BASE_URL = "https://api.openrouteservice.org/v2/directions"
 
 TRANSPORT_PROFILES = {
@@ -151,7 +151,4 @@ async def report_pollution(report: PollutionReport):
     return {"status": "submitted", "report": entry}
 
 
-@router.get("/community_reports")
-async def get_community_reports():
-    """Get all community pollution reports."""
-    return {"reports": community_reports, "count": len(community_reports)}
+

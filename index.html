@@ -1,0 +1,2391 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoRoute — Urban Health Intelligence Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+
+    <style>
+        :root {
+            --bg: #f2f2f7;
+            --surface: rgba(255, 255, 255, .78);
+            --surface2: rgba(255, 255, 255, .94);
+            --border: rgba(0, 0, 0, .07);
+            --t1: #1c1c1e;
+            --t2: #636366;
+            --t3: #aeaeb2;
+            --green: #34c759;
+            --gd: #248a3d;
+            --blue: #007aff;
+            --orange: #ff9f0a;
+            --red: #ff3b30;
+            --purple: #af52de;
+            --teal: #30b0c7;
+            --yellow: #ffd60a;
+            --r: 22px;
+            --rsm: 14px;
+            --sh: 0 2px 20px rgba(0, 0, 0, .06), 0 1px 4px rgba(0, 0, 0, .04);
+            --shl: 0 8px 40px rgba(0, 0, 0, .10), 0 2px 8px rgba(0, 0, 0, .06);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--t1);
+            overflow-x: hidden
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, .14);
+            border-radius: 3px
+        }
+
+        /* NAV */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 2000;
+            height: 54px;
+            background: rgba(242, 242, 247, .86);
+            backdrop-filter: saturate(180%) blur(24px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px
+        }
+
+        .nlogo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: -.3px
+        }
+
+        .nlogo .iw {
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #34c759, #007aff);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px
+        }
+
+        .nlinks {
+            display: flex;
+            gap: 26px;
+            list-style: none;
+            font-size: 13px;
+            font-weight: 400;
+            color: var(--t2)
+        }
+
+        .nlinks li {
+            cursor: pointer;
+            transition: color .2s
+        }
+
+        .nlinks li:hover,
+        .nlinks li.ac {
+            color: var(--t1);
+            font-weight: 500
+        }
+
+        .ncta {
+            padding: 7px 18px;
+            background: var(--t1);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all .2s
+        }
+
+        .ncta:hover {
+            background: #2c2c2e;
+            transform: scale(1.03)
+        }
+
+        /* HERO */
+        .hero {
+            padding: 130px 32px 44px;
+            max-width: 1260px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center
+        }
+
+        .htag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(52, 199, 89, .1);
+            border: 1px solid rgba(52, 199, 89, .22);
+            border-radius: 100px;
+            padding: 4px 14px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gd);
+            letter-spacing: .5px;
+            text-transform: uppercase;
+            margin-bottom: 20px
+        }
+
+        .hero h1 {
+            font-family: 'Instrument Serif', serif;
+            font-size: clamp(34px, 4.4vw, 62px);
+            line-height: 1.06;
+            letter-spacing: -1.5px;
+            margin-bottom: 18px
+        }
+
+        .hero h1 em {
+            font-style: italic;
+            color: var(--green)
+        }
+
+        .hero h1 span {
+            color: var(--blue)
+        }
+
+        .hdesc {
+            font-size: 16px;
+            color: var(--t2);
+            line-height: 1.72;
+            font-weight: 300;
+            max-width: 440px;
+            margin-bottom: 32px
+        }
+
+        .hstats {
+            display: flex;
+            gap: 28px
+        }
+
+        .sn {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -.5px
+        }
+
+        .sl {
+            font-size: 12px;
+            color: var(--t3);
+            margin-top: 1px
+        }
+
+        .hwidget {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            box-shadow: var(--shl);
+            padding: 24px;
+            animation: float 6s ease-in-out infinite
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0)
+            }
+
+            50% {
+                transform: translateY(-8px)
+            }
+        }
+
+        .wlbl {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--t3);
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            margin-bottom: 10px
+        }
+
+        .ecmp {
+            display: flex;
+            gap: 10px
+        }
+
+        .eroute {
+            flex: 1;
+            padding: 12px;
+            border-radius: var(--rsm);
+            background: rgba(0, 0, 0, .03)
+        }
+
+        .eroute.best {
+            background: rgba(52, 199, 89, .08);
+            border: 1px solid rgba(52, 199, 89, .18)
+        }
+
+        .ern {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--t2);
+            margin-bottom: 5px
+        }
+
+        .erv {
+            font-size: 21px;
+            font-weight: 600;
+            letter-spacing: -.5px
+        }
+
+        .erv.bad {
+            color: var(--red)
+        }
+
+        .erv.ok {
+            color: var(--green)
+        }
+
+        .ersub {
+            font-size: 11px;
+            color: var(--t3);
+            margin-top: 2px
+        }
+
+        .erbadge {
+            display: inline-block;
+            margin-top: 7px;
+            padding: 2px 10px;
+            border-radius: 100px;
+            font-size: 10px;
+            font-weight: 600;
+            background: rgba(52, 199, 89, .14);
+            color: var(--gd)
+        }
+
+        .wdiv {
+            height: 1px;
+            background: var(--border);
+            margin: 14px 0
+        }
+
+        .rgrid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 7px
+        }
+
+        .ritem {
+            padding: 9px;
+            background: rgba(0, 0, 0, .025);
+            border-radius: 10px
+        }
+
+        .rfactor {
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--t3);
+            text-transform: uppercase;
+            letter-spacing: .5px
+        }
+
+        .rbb {
+            height: 5px;
+            background: rgba(0, 0, 0, .07);
+            border-radius: 3px;
+            margin: 5px 0 3px;
+            overflow: hidden
+        }
+
+        .rbf {
+            height: 100%;
+            border-radius: 3px
+        }
+
+        .rv {
+            font-size: 11px;
+            font-weight: 600
+        }
+
+        /* ROUTE BAR */
+        .rsec {
+            max-width: 1260px;
+            margin: 0 auto 30px;
+            padding: 0 32px
+        }
+
+        .rbar {
+            display: flex;
+            align-items: center;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            box-shadow: var(--sh);
+            overflow: hidden;
+            transition: box-shadow .3s
+        }
+
+        .rbar:focus-within {
+            box-shadow: var(--shl), 0 0 0 3px rgba(0, 122, 255, .12)
+        }
+
+        .msel {
+            display: flex;
+            gap: 2px;
+            padding: 7px;
+            border-right: 1px solid var(--border)
+        }
+
+        .mbtn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 10px;
+            background: transparent;
+            cursor: pointer;
+            font-size: 17px;
+            transition: background .2s;
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        .mbtn.ac,
+        .mbtn:hover {
+            background: rgba(0, 0, 0, .05)
+        }
+
+        .riw {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 18px;
+            border-right: 1px solid var(--border)
+        }
+
+        .riw input {
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 15px;
+            font-family: inherit;
+            color: var(--t1);
+            width: 100%
+        }
+
+        .riw input::placeholder {
+            color: var(--t3)
+        }
+
+        .riw .ri {
+            font-size: 16px;
+            flex-shrink: 0
+        }
+
+        .gobtn {
+            padding: 10px 20px;
+            margin: 7px;
+            background: var(--t1);
+            color: white;
+            border: none;
+            border-radius: 13px;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all .2s;
+            white-space: nowrap
+        }
+
+        .gobtn:hover {
+            background: #2c2c2e;
+            transform: scale(1.02)
+        }
+
+        /* SECTION HEAD */
+        .sh {
+            max-width: 1260px;
+            margin: 0 auto;
+            padding: 0 32px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .st {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--t3);
+            text-transform: uppercase;
+            letter-spacing: 1.2px
+        }
+
+        .sbadge {
+            font-size: 11px;
+            color: var(--gd);
+            background: rgba(52, 199, 89, .1);
+            padding: 3px 10px;
+            border-radius: 100px;
+            font-weight: 500
+        }
+
+        /* MAP */
+        .mapsec {
+            max-width: 1260px;
+            margin: 0 auto 26px;
+            padding: 0 32px
+        }
+
+        .mapcard {
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow: var(--shl);
+            position: relative
+        }
+
+        #wmap {
+            height: 540px;
+            width: 100%
+        }
+
+        .mot {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            right: 16px;
+            z-index: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            pointer-events: none
+        }
+
+        .mpill {
+            background: rgba(255, 255, 255, .92);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 0, 0, .08);
+            border-radius: 16px;
+            padding: 12px 18px;
+            pointer-events: all
+        }
+
+        .mpl {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--t3);
+            text-transform: uppercase;
+            letter-spacing: .8px
+        }
+
+        .mpv {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--t1);
+            margin-top: 2px
+        }
+
+        .lpills {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            pointer-events: all
+        }
+
+        .lp {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: rgba(255, 255, 255, .92);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 0, 0, .08);
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            font-family: inherit;
+            color: var(--t2);
+            transition: all .2s
+        }
+
+        .lp.ac {
+            background: var(--t1);
+            color: white;
+            border-color: transparent
+        }
+
+        .lp .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%
+        }
+
+        .mleg {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            z-index: 500;
+            background: rgba(255, 255, 255, .92);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 0, 0, .08);
+            border-radius: 14px;
+            padding: 12px 16px;
+            min-width: 160px
+        }
+
+        .mlbl {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--t3);
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            margin-bottom: 7px
+        }
+
+        .mgrad {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            margin-bottom: 4px
+        }
+
+        .mrange {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: var(--t3)
+        }
+
+        .mpred {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            z-index: 500;
+            background: rgba(0, 122, 255, .9);
+            backdrop-filter: blur(20px);
+            border-radius: 14px;
+            padding: 10px 16px;
+            color: white
+        }
+
+        .mpl2 {
+            font-size: 10px;
+            font-weight: 600;
+            opacity: .7;
+            text-transform: uppercase;
+            letter-spacing: .8px
+        }
+
+        .mpv2 {
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 2px
+        }
+
+        /* CARDS */
+        .csec {
+            max-width: 1260px;
+            margin: 0 auto;
+            padding: 0 32px 30px
+        }
+
+        .cgrid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 14px
+        }
+
+        .card {
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 20px;
+            transition: transform .2s, box-shadow .2s, background .2s;
+            position: relative;
+            overflow: hidden;
+            animation: fadeUp .5s ease both
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shl);
+            background: var(--surface2)
+        }
+
+        .clbl {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--t3);
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            margin-bottom: 10px
+        }
+
+        .cval {
+            font-size: 38px;
+            font-weight: 300;
+            line-height: 1;
+            letter-spacing: -1px;
+            margin-bottom: 4px
+        }
+
+        .cunit {
+            font-size: 16px;
+            font-weight: 400
+        }
+
+        .csub {
+            font-size: 12px;
+            color: var(--t2);
+            margin-top: 6px;
+            line-height: 1.5
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 100px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-top: 8px
+        }
+
+        .c3 {
+            grid-column: span 3
+        }
+
+        .c4 {
+            grid-column: span 4
+        }
+
+        .c6 {
+            grid-column: span 6
+        }
+
+        .c8 {
+            grid-column: span 8
+        }
+
+        .c12 {
+            grid-column: span 12
+        }
+
+        .ca {
+            background: linear-gradient(135deg, rgba(255, 159, 10, .1), rgba(255, 69, 58, .06))
+        }
+
+        .cb {
+            background: linear-gradient(135deg, rgba(255, 69, 58, .1), rgba(255, 159, 10, .05))
+        }
+
+        .cc {
+            background: linear-gradient(135deg, rgba(0, 122, 255, .1), rgba(48, 176, 199, .05))
+        }
+
+        .cd {
+            background: linear-gradient(135deg, rgba(52, 199, 89, .14), rgba(0, 122, 255, .05))
+        }
+
+        .ce {
+            background: linear-gradient(135deg, rgba(0, 122, 255, .1), rgba(94, 92, 230, .06))
+        }
+
+        .cf {
+            background: linear-gradient(135deg, rgba(175, 82, 222, .1), rgba(94, 92, 230, .05))
+        }
+
+        .cg {
+            background: linear-gradient(135deg, rgba(52, 199, 89, .12), rgba(48, 209, 88, .04))
+        }
+
+        .ch {
+            background: linear-gradient(135deg, rgba(255, 214, 10, .14), rgba(255, 159, 10, .06))
+        }
+
+        .ci {
+            background: linear-gradient(135deg, rgba(142, 142, 147, .1), rgba(99, 99, 102, .04))
+        }
+
+        .cj {
+            background: linear-gradient(135deg, rgba(48, 176, 199, .12), rgba(0, 122, 255, .04))
+        }
+
+        .deco {
+            position: absolute;
+            right: -16px;
+            bottom: -16px;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            opacity: .1;
+            pointer-events: none
+        }
+
+        .pb2 {
+            height: 7px;
+            background: rgba(0, 0, 0, .07);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 7px
+        }
+
+        .pbf {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1.2s ease
+        }
+
+        .aqiw {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-top: 6px
+        }
+
+        .aqisvg {
+            width: 64px;
+            height: 64px;
+            flex-shrink: 0
+        }
+
+        .ropt {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px;
+            border-radius: var(--rsm);
+            background: rgba(0, 0, 0, .025);
+            margin-bottom: 8px;
+            transition: background .2s
+        }
+
+        .ropt:last-child {
+            margin-bottom: 0
+        }
+
+        .ropt.best {
+            background: rgba(52, 199, 89, .09);
+            border: 1px solid rgba(52, 199, 89, .18)
+        }
+
+        .rdot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            flex-shrink: 0
+        }
+
+        .rinf {
+            flex: 1
+        }
+
+        .rnm {
+            font-size: 13px;
+            font-weight: 500
+        }
+
+        .rmt {
+            font-size: 11px;
+            color: var(--t2);
+            margin-top: 2px
+        }
+
+        .rbdg {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 100px;
+            background: var(--green);
+            color: white
+        }
+
+        .improw {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, .05)
+        }
+
+        .improw:last-child {
+            border-bottom: none
+        }
+
+        .impico {
+            font-size: 17px;
+            width: 26px;
+            text-align: center
+        }
+
+        .imptxt {
+            flex: 1;
+            font-size: 12px;
+            color: var(--t2)
+        }
+
+        .impnum {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--green)
+        }
+
+        .arow {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            padding: 11px;
+            border-radius: var(--rsm);
+            margin-bottom: 8px
+        }
+
+        .arow:last-child {
+            margin-bottom: 0
+        }
+
+        .arow.danger {
+            background: rgba(255, 59, 48, .06);
+            border-left: 3px solid var(--red)
+        }
+
+        .arow.warn {
+            background: rgba(255, 159, 10, .06);
+            border-left: 3px solid var(--orange)
+        }
+
+        .arow.info {
+            background: rgba(0, 122, 255, .06);
+            border-left: 3px solid var(--blue)
+        }
+
+        .at {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 2px
+        }
+
+        .ad {
+            font-size: 12px;
+            color: var(--t2);
+            line-height: 1.45
+        }
+
+        .pbars {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            height: 56px;
+            margin-top: 12px
+        }
+
+        .pb {
+            flex: 1;
+            border-radius: 4px 4px 0 0;
+            background: linear-gradient(to top, rgba(0, 122, 255, .65), rgba(0, 122, 255, .18))
+        }
+
+        .pblbls {
+            display: flex;
+            gap: 4px;
+            margin-top: 4px
+        }
+
+        .pbl {
+            flex: 1;
+            text-align: center;
+            font-size: 10px;
+            color: var(--t3)
+        }
+
+        .uvsc {
+            display: flex;
+            height: 9px;
+            border-radius: 5px;
+            overflow: hidden;
+            gap: 2px;
+            margin-top: 10px
+        }
+
+        .uvs {
+            flex: 1;
+            border-radius: 3px
+        }
+
+        .uvs.off {
+            opacity: .18
+        }
+
+        .cdots {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 10px
+        }
+
+        .cdot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--blue);
+            opacity: .18;
+            transition: opacity .3s
+        }
+
+        .cdot.on {
+            opacity: 1
+        }
+
+        canvas.spark {
+            width: 100%;
+            height: 48px;
+            display: block;
+            margin-top: 10px
+        }
+
+        .ptl {
+            margin-top: 12px
+        }
+
+        .prow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, .05)
+        }
+
+        .prow:last-child {
+            border-bottom: none
+        }
+
+        .ptm {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--t3);
+            width: 36px
+        }
+
+        .pbg {
+            flex: 1;
+            height: 6px;
+            background: rgba(0, 0, 0, .07);
+            border-radius: 3px;
+            overflow: hidden
+        }
+
+        .pbl2 {
+            height: 100%;
+            border-radius: 3px
+        }
+
+        .pval {
+            font-size: 11px;
+            font-weight: 600;
+            width: 36px;
+            text-align: right
+        }
+
+        .mmr {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px;
+            background: rgba(0, 0, 0, .025);
+            border-radius: var(--rsm);
+            margin-bottom: 8px;
+            flex-wrap: wrap
+        }
+
+        .mmr:last-child {
+            margin-bottom: 0
+        }
+
+        .mms {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500
+        }
+
+        .mma {
+            color: var(--t3);
+            font-size: 12px
+        }
+
+        .mmstat {
+            display: flex;
+            gap: 10px;
+            margin-top: 6px;
+            font-size: 11px;
+            color: var(--t2);
+            flex-wrap: wrap
+        }
+
+        .mmst {
+            display: flex;
+            align-items: center;
+            gap: 3px
+        }
+
+        .tgrid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-top: 10px
+        }
+
+        .tcell {
+            padding: 8px;
+            border-radius: 10px;
+            text-align: center;
+            background: rgba(0, 0, 0, .03)
+        }
+
+        .tci {
+            font-size: 18px
+        }
+
+        .tcl {
+            font-size: 10px;
+            color: var(--t3);
+            margin-top: 3px
+        }
+
+        .tcv {
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 2px
+        }
+
+        .ejbar {
+            margin-top: 8px
+        }
+
+        .ejzone {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0
+        }
+
+        .ejn {
+            font-size: 12px;
+            font-weight: 500;
+            width: 82px;
+            flex-shrink: 0
+        }
+
+        .ejbg {
+            flex: 1;
+            height: 8px;
+            background: rgba(0, 0, 0, .07);
+            border-radius: 4px;
+            overflow: hidden
+        }
+
+        .ejfill {
+            height: 100%;
+            border-radius: 4px
+        }
+
+        .ejsc {
+            font-size: 11px;
+            font-weight: 600;
+            width: 36px;
+            text-align: right
+        }
+
+        .repitem {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 9px;
+            border-radius: var(--rsm);
+            background: rgba(0, 0, 0, .025);
+            margin-bottom: 7px
+        }
+
+        .repitem:last-child {
+            margin-bottom: 0
+        }
+
+        .repi {
+            font-size: 16px;
+            flex-shrink: 0;
+            margin-top: 1px
+        }
+
+        .repb {
+            flex: 1
+        }
+
+        .reptt {
+            font-size: 12px;
+            font-weight: 600
+        }
+
+        .repss {
+            font-size: 11px;
+            color: var(--t3);
+            margin-top: 1px
+        }
+
+        .reptm {
+            font-size: 10px;
+            color: var(--t3)
+        }
+
+        .mgrid2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px
+        }
+
+        .mcell {
+            padding: 10px;
+            border-radius: var(--rsm);
+            background: rgba(0, 0, 0, .025)
+        }
+
+        .mcn {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -.5px;
+            color: var(--green)
+        }
+
+        .mcl {
+            font-size: 11px;
+            color: var(--t3);
+            margin-top: 2px
+        }
+
+        .ccmp {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px
+        }
+
+        .ccol {
+            flex: 1;
+            padding: 10px;
+            border-radius: var(--rsm);
+            background: rgba(0, 0, 0, .025);
+            text-align: center
+        }
+
+        .ccol.zero {
+            background: rgba(52, 199, 89, .08);
+            border: 1px solid rgba(52, 199, 89, .18)
+        }
+
+        .ccv {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -.5px
+        }
+
+        .ccv.bad {
+            color: var(--red)
+        }
+
+        .ccv.ok {
+            color: var(--green)
+        }
+
+        .ccl {
+            font-size: 11px;
+            color: var(--t3);
+            margin-top: 3px
+        }
+
+        .ccm {
+            font-size: 16px;
+            margin-bottom: 4px
+        }
+
+        .wrow {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 8px
+        }
+
+        .wcomp {
+            width: 70px;
+            height: 70px;
+            flex-shrink: 0
+        }
+
+        .expm {
+            margin-top: 12px
+        }
+
+        .expl {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--t3);
+            margin-bottom: 4px
+        }
+
+        /* BOTTOM */
+        .bsec {
+            max-width: 1260px;
+            margin: 0 auto;
+            padding: 0 32px 80px
+        }
+
+        .banner {
+            background: var(--t1);
+            border-radius: 28px;
+            padding: 52px;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden
+        }
+
+        .banner h2 {
+            font-family: 'Instrument Serif', serif;
+            font-size: clamp(26px, 4vw, 50px);
+            font-weight: 400;
+            letter-spacing: -1px;
+            margin-bottom: 12px
+        }
+
+        .banner h2 em {
+            font-style: italic;
+            color: var(--green)
+        }
+
+        .banner p {
+            font-size: 16px;
+            opacity: .5;
+            font-weight: 300;
+            max-width: 480px;
+            margin: 0 auto
+        }
+
+        .bglow {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(ellipse at 15% 50%, rgba(52, 199, 89, .18) 0%, transparent 55%), radial-gradient(ellipse at 85% 50%, rgba(0, 122, 255, .18) 0%, transparent 55%)
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(14px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .card:nth-child(1) {
+            animation-delay: .04s
+        }
+
+        .card:nth-child(2) {
+            animation-delay: .08s
+        }
+
+        .card:nth-child(3) {
+            animation-delay: .12s
+        }
+
+        .card:nth-child(4) {
+            animation-delay: .16s
+        }
+
+        .card:nth-child(5) {
+            animation-delay: .20s
+        }
+
+        .card:nth-child(6) {
+            animation-delay: .24s
+        }
+
+        .card:nth-child(7) {
+            animation-delay: .28s
+        }
+
+        .card:nth-child(8) {
+            animation-delay: .32s
+        }
+
+        .card:nth-child(9) {
+            animation-delay: .36s
+        }
+
+        .card:nth-child(10) {
+            animation-delay: .40s
+        }
+
+        .card:nth-child(11) {
+            animation-delay: .44s
+        }
+
+        .card:nth-child(12) {
+            animation-delay: .48s
+        }
+
+        .card:nth-child(13) {
+            animation-delay: .52s
+        }
+
+        .card:nth-child(14) {
+            animation-delay: .56s
+        }
+
+        .card:nth-child(15) {
+            animation-delay: .60s
+        }
+
+        .card:nth-child(16) {
+            animation-delay: .64s
+        }
+
+        .card:nth-child(17) {
+            animation-delay: .68s
+        }
+
+        .card:nth-child(18) {
+            animation-delay: .72s
+        }
+
+        .card:nth-child(19) {
+            animation-delay: .76s
+        }
+
+        .card:nth-child(20) {
+            animation-delay: .80s
+        }
+
+        .card:nth-child(21) {
+            animation-delay: .84s
+        }
+
+        .card:nth-child(22) {
+            animation-delay: .88s
+        }
+
+        .card:nth-child(23) {
+            animation-delay: .92s
+        }
+
+        .leaflet-container {
+            font-family: inherit
+        }
+
+        .leaflet-popup-content-wrapper {
+            border-radius: 14px !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, .15) !important;
+            border: 1px solid rgba(0, 0, 0, .07) !important
+        }
+
+        .leaflet-popup-content {
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px
+        }
+
+        .leaflet-control-zoom {
+            border-radius: 12px !important;
+            overflow: hidden;
+            border: 1px solid rgba(0, 0, 0, .08) !important
+        }
+
+        .leaflet-control-zoom a {
+            border: none !important
+        }
+
+        @media(max-width:1000px) {
+            .hero {
+                grid-template-columns: 1fr;
+                gap: 32px
+            }
+
+            .hright {
+                display: none
+            }
+
+            .c3 {
+                grid-column: span 6
+            }
+
+            .c4 {
+                grid-column: span 6
+            }
+
+            .c8 {
+                grid-column: span 12
+            }
+        }
+
+        @media(max-width:640px) {
+            nav {
+                padding: 0 16px
+            }
+
+            .nlinks {
+                display: none
+            }
+
+            .hero,
+            .rsec,
+            .mapsec,
+            .csec,
+            .sh,
+            .bsec {
+                padding-left: 16px;
+                padding-right: 16px
+            }
+
+            .c3,
+            .c4,
+            .c6 {
+                grid-column: span 12
+            }
+
+            #wmap {
+                height: 320px
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <div class="nlogo">
+            <div class="iw">🌿</div><span>EcoRoute</span>
+        </div>
+        <ul class="nlinks">
+            <li class="ac">Dashboard</li>
+            <li>Live Map</li>
+            <li>Routes</li>
+            <li>Community</li>
+        </ul>
+        <button class="ncta">Plan a Route</button>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hleft">
+            <div class="htag">🌿 Smart Eco-Routing for Jabalpur</div>
+            <h1>Navigate the <em>healthiest</em><br>path through<br><span>Jabalpur.</span></h1>
+            <p class="hdesc">Find the cleanest, greenest routes across Jabalpur — using real-time air quality, weather
+                data,
+                and green cover analysis to protect your health on every journey.</p>
+            <div class="hstats">
+                <div>
+                    <div class="sn">40%</div>
+                    <div class="sl">Avg. pollution reduction</div>
+                </div>
+                <div>
+                    <div class="sn">24/7</div>
+                    <div class="sl">Live monitoring</div>
+                </div>
+            </div>
+        </div>
+        <div class="hright">
+            <div class="hwidget">
+                <div class="wlbl">Personal Pollution Exposure Model</div>
+                <div class="ecmp">
+                    <div class="eroute">
+                        <div class="ern">Fastest Route</div>
+                        <div class="erv bad">120 µg</div>
+                        <div class="ersub">PM2.5 absorbed · 18 min</div>
+                    </div>
+                    <div class="eroute best">
+                        <div class="ern">Health Route ⭐</div>
+                        <div class="erv ok">45 µg</div>
+                        <div class="ersub">PM2.5 absorbed · 22 min</div>
+                        <div class="erbadge">−63% exposure</div>
+                    </div>
+                </div>
+                <div class="wdiv"></div>
+                <div class="wlbl">Health Risk Score Breakdown</div>
+                <div class="rgrid">
+                    <div class="ritem">
+                        <div class="rfactor">Air (40%)</div>
+                        <div class="rbb">
+                            <div class="rbf" style="width:35%;background:var(--orange)"></div>
+                        </div>
+                        <div class="rv" style="color:var(--orange)">Moderate</div>
+                    </div>
+                    <div class="ritem">
+                        <div class="rfactor">Heat (20%)</div>
+                        <div class="rbb">
+                            <div class="rbf" style="width:60%;background:var(--red)"></div>
+                        </div>
+                        <div class="rv" style="color:var(--red)">High</div>
+                    </div>
+                    <div class="ritem">
+                        <div class="rfactor">Noise (20%)</div>
+                        <div class="rbb">
+                            <div class="rbf" style="width:25%;background:var(--purple)"></div>
+                        </div>
+                        <div class="rv" style="color:var(--purple)">Low</div>
+                    </div>
+                    <div class="ritem">
+                        <div class="rfactor">Crowd (10%)</div>
+                        <div class="rbb">
+                            <div class="rbf" style="width:45%;background:var(--blue)"></div>
+                        </div>
+                        <div class="rv" style="color:var(--blue)">Moderate</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ROUTE BAR -->
+    <div class="rsec">
+        <div class="rbar">
+            <div class="msel">
+                <button class="mbtn ac" title="Walk">🚶</button>
+                <button class="mbtn" title="Cycle">🚴</button>
+                <button class="mbtn" title="Drive">🚗</button>
+                <button class="mbtn" title="Transit">🚇</button>
+            </div>
+            <div class="riw"><span class="ri">📍</span><input type="text" placeholder="From — current location"
+                    id="oi" />
+            </div>
+            <div class="riw"><span class="ri">🏁</span><input type="text" placeholder="To — destination" id="di" />
+            </div>
+            <button class="gobtn" onclick="findRoute()">Find Healthy Route →</button>
+        </div>
+    </div>
+
+    <div class="sh"><span class="st">🗺 Live Map — Jabalpur</span><span class="sbadge">● Live · Updated 2 min ago</span>
+    </div>
+
+    <!-- MAP -->
+    <section class="mapsec">
+        <div class="mapcard">
+            <div id="wmap"></div>
+            <div class="mot">
+                <div class="mpill">
+                    <div class="mpl">Active Layer</div>
+                    <div class="mpv" id="aln">Air Quality Index</div>
+                </div>
+            </div>
+            <div class="mleg">
+                <div class="mlbl" id="lt">Air Quality Index</div>
+                <div class="mgrad" id="lg" style="background:linear-gradient(90deg,#34c759,#ffd60a,#ff9f0a,#ff3b30)">
+                </div>
+                <div class="mrange"><span id="lmin">Good</span><span id="lmax">Hazardous</span></div>
+            </div>
+            <div class="mpred">
+                <div class="mpl2">🤖 AI Forecast · 6h</div>
+                <div class="mpv2">AQI +12 · Rain 40%</div>
+            </div>
+        </div>
+    </section>
+
+    <div class="sh"><span class="st">📊 Environmental Data</span></div>
+
+    <!-- CARDS -->
+    <section class="csec">
+        <div class="cgrid">
+
+            <!-- 1. AQI -->
+            <div class="card ca c4">
+                <div class="clbl">🌫 Air Quality Index</div>
+                <div class="aqiw">
+                    <svg class="aqisvg" viewBox="0 0 64 64">
+                        <circle cx="32" cy="32" r="25" fill="none" stroke="rgba(0,0,0,.07)" stroke-width="6" />
+                        <circle cx="32" cy="32" r="25" fill="none" stroke="#ff9f0a" stroke-width="6"
+                            stroke-dasharray="157" stroke-dashoffset="55" stroke-linecap="round"
+                            transform="rotate(-90 32 32)" />
+                        <text x="32" y="36" text-anchor="middle" font-size="12" font-weight="600"
+                            fill="#1c1c1e">72</text>
+                    </svg>
+                    <div>
+                        <div class="cval" style="font-size:26px">72 <span
+                                style="font-size:13px;color:var(--t2)">AQI</span></div>
+                        <div class="badge" style="background:rgba(255,159,10,.12);color:#b36200">⚠ Moderate</div>
+                        <div class="csub">PM2.5: 18 µg/m³ · NO₂: 42 ppb<br>Exposure (walking, 20min): 45 µg</div>
+                    </div>
+                </div>
+                <div class="deco" style="background:var(--orange)"></div>
+            </div>
+
+            <!-- 2. Thermal Comfort -->
+            <div class="card cb c4">
+                <div class="clbl">🌡 Urban Thermal Comfort Index</div>
+                <div class="cval">31<span class="cunit">°C</span></div>
+                <div class="tgrid">
+                    <div class="tcell">
+                        <div class="tci">🌡</div>
+                        <div class="tcl">Temp</div>
+                        <div class="tcv">31°C</div>
+                    </div>
+                    <div class="tcell">
+                        <div class="tci">💧</div>
+                        <div class="tcl">Humidity</div>
+                        <div class="tcv">68%</div>
+                    </div>
+                    <div class="tcell">
+                        <div class="tci">🌬</div>
+                        <div class="tcl">Wind</div>
+                        <div class="tcv">14 km/h</div>
+                    </div>
+                    <div class="tcell" style="background:rgba(255,69,58,.08)">
+                        <div class="tci">🔥</div>
+                        <div class="tcl">Comfort</div>
+                        <div class="tcv" style="color:var(--red)">Poor</div>
+                    </div>
+                </div>
+                <div class="deco" style="background:var(--red)"></div>
+            </div>
+
+            <!-- 3. Humidity -->
+            <div class="card cc c4">
+                <div class="clbl">💧 Humidity</div>
+                <div class="cval">68<span class="cunit">%</span></div>
+                <div class="badge" style="background:rgba(0,122,255,.1);color:#0055b3">Moderately Humid</div>
+                <canvas class="spark" id="sk-humid"></canvas>
+                <div class="deco" style="background:var(--blue)"></div>
+            </div>
+
+            <!-- 4. Health Score -->
+            <div class="card cd c6">
+                <div class="clbl">❤️ Composite Health Risk Score</div>
+                <div style="display:flex;align-items:flex-end;gap:16px;margin-top:2px">
+                    <div style="font-size:60px;font-weight:200;letter-spacing:-2px;color:var(--green);line-height:1">85
+                    </div>
+                    <div style="padding-bottom:8px">
+                        <div style="font-size:13px;color:var(--t2)">out of 100</div>
+                        <div class="badge" style="background:rgba(52,199,89,.12);color:var(--gd)">✓ Recommended Route
+                        </div>
+                    </div>
+                </div>
+                <div class="clbl" style="margin-top:12px;margin-bottom:6px">Score Formula: 0.4 Air + 0.2 Heat + 0.2
+                    Noise + 0.1
+                    Crowd + 0.1 Traffic</div>
+                <div style="display:flex;flex-direction:column;gap:5px">
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <div style="font-size:11px;color:var(--t3);width:84px">Air (40%)</div>
+                        <div class="pb2" style="flex:1">
+                            <div class="pbf" style="width:82%;background:var(--green)"></div>
+                        </div>
+                        <div style="font-size:11px;font-weight:600;width:24px">82</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <div style="font-size:11px;color:var(--t3);width:84px">Heat (20%)</div>
+                        <div class="pb2" style="flex:1">
+                            <div class="pbf" style="width:70%;background:var(--orange)"></div>
+                        </div>
+                        <div style="font-size:11px;font-weight:600;width:24px">70</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <div style="font-size:11px;color:var(--t3);width:84px">Noise (20%)</div>
+                        <div class="pb2" style="flex:1">
+                            <div class="pbf" style="width:90%;background:var(--purple)"></div>
+                        </div>
+                        <div style="font-size:11px;font-weight:600;width:24px">90</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <div style="font-size:11px;color:var(--t3);width:84px">Crowd (10%)</div>
+                        <div class="pb2" style="flex:1">
+                            <div class="pbf" style="width:88%;background:var(--blue)"></div>
+                        </div>
+                        <div style="font-size:11px;font-weight:600;width:24px">88</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <div style="font-size:11px;color:var(--t3);width:84px">Traffic (10%)</div>
+                        <div class="pb2" style="flex:1">
+                            <div class="pbf" style="width:85%;background:var(--teal)"></div>
+                        </div>
+                        <div style="font-size:11px;font-weight:600;width:24px">85</div>
+                    </div>
+                </div>
+                <div class="deco" style="background:var(--green)"></div>
+            </div>
+
+            <!-- 5. Route Comparison (multi-objective) -->
+            <div class="card ce c6">
+                <div class="clbl">🧭 Multi-Objective Route Comparison</div>
+                <div class="ropt">
+                    <div class="rdot" style="background:var(--red)"></div>
+                    <div class="rinf">
+                        <div class="rnm">Fastest Route</div>
+                        <div class="rmt">18 min · AQI 160 · 120 µg PM2.5 · 75 dB · High traffic</div>
+                    </div>
+                    <div style="font-size:22px;font-weight:600;color:var(--red)">48</div>
+                </div>
+                <div class="ropt best">
+                    <div class="rdot" style="background:var(--green)"></div>
+                    <div class="rinf">
+                        <div class="rnm">Health Route ⭐</div>
+                        <div class="rmt">22 min · AQI 70 · 45 µg PM2.5 · 48 dB · Green corridor</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+                        <div style="font-size:22px;font-weight:600;color:var(--green)">85</div>
+                        <div class="rbdg">Best</div>
+                    </div>
+                </div>
+                <div class="ropt">
+                    <div class="rdot" style="background:var(--orange)"></div>
+                    <div class="rinf">
+                        <div class="rnm">Scenic Route</div>
+                        <div class="rmt">28 min · AQI 45 · 30 µg PM2.5 · 38 dB · Park path</div>
+                    </div>
+                    <div style="font-size:22px;font-weight:600;color:var(--orange)">91</div>
+                </div>
+                <div class="csub" style="margin-top:8px">🤖 AI engine: multi-objective optimization (minimize pollution
+                    + heat +
+                    time, maximize greenery)</div>
+                <div class="deco" style="background:var(--blue)"></div>
+            </div>
+
+            <!-- 6. AI Pollution Forecast -->
+            <div class="card ci c4">
+                <div class="clbl">🤖 AI Pollution Forecast</div>
+                <div class="badge" style="background:rgba(0,122,255,.1);color:#004fa3;margin-bottom:8px">LSTM
+                    Time-Series · 6h
+                    Ahead</div>
+                <div class="ptl" id="ptl"></div>
+                <div class="csub" style="margin-top:8px">⚠ AQI spike predicted at 6 PM. Recommend travel before 4 PM.
+                </div>
+                <div class="deco" style="background:var(--blue)"></div>
+            </div>
+
+            <!-- 7. Precipitation -->
+            <div class="card cc c4">
+                <div class="clbl">🌧 Precipitation</div>
+                <div class="cval">12<span class="cunit">mm</span></div>
+                <div class="csub">Next 6 hours</div>
+                <div class="pbars" id="pbars"></div>
+                <div class="pblbls" id="pblbls"></div>
+                <div class="deco" style="background:var(--blue)"></div>
+            </div>
+
+            <!-- 8. Noise Pollution Modeling -->
+            <div class="card cf c4">
+                <div class="clbl">🔊 Noise Pollution Model</div>
+                <div class="cval" style="color:var(--purple)">48<span class="cunit" style="font-size:15px"> dB</span>
+                </div>
+                <div class="badge" style="background:rgba(175,82,222,.1);color:#7b2fa8">🔈 Low — Calm Street</div>
+                <div style="margin-top:10px">
+                    <div
+                        style="display:flex;justify-content:space-between;font-size:11px;color:var(--t3);margin-bottom:4px">
+                        <span>Route A: 75 dB</span><span style="color:var(--purple)">Route B: 48 dB ⭐</span>
+                    </div>
+                    <div class="pb2">
+                        <div class="pbf" style="width:40%;background:linear-gradient(90deg,var(--purple),var(--blue))">
+                        </div>
+                    </div>
+                </div>
+                <div class="csub" style="margin-top:8px">Modeled from traffic density, road type, construction
+                    proximity. Mental
+                    health impact: significant.</div>
+                <div class="deco" style="background:var(--purple)"></div>
+            </div>
+
+            <!-- 9. Personal Exposure Modeling -->
+            <div class="card ci c4">
+                <div class="clbl">🫁 Personal Exposure Model</div>
+                <div style="font-size:11px;color:var(--t3);margin-bottom:10px">Exposure = Concentration × Breathing Rate
+                    × Time
+                </div>
+                <div class="expm">
+                    <div class="expl"><span>🚶 Walking</span><span style="color:var(--green)">45 µg</span></div>
+                    <div class="pb2">
+                        <div class="pbf" style="width:30%;background:var(--green)"></div>
+                    </div>
+                    <div class="expl" style="margin-top:8px"><span>🚴 Cycling</span><span style="color:var(--orange)">72
+                            µg</span>
+                    </div>
+                    <div class="pb2">
+                        <div class="pbf" style="width:48%;background:var(--orange)"></div>
+                    </div>
+                    <div class="expl" style="margin-top:8px"><span>🏃 Running</span><span style="color:var(--red)">104
+                            µg</span>
+                    </div>
+                    <div class="pb2">
+                        <div class="pbf" style="width:69%;background:var(--red)"></div>
+                    </div>
+                </div>
+                <div class="csub" style="margin-top:8px">Activity-based exposure modeling for walking, cycling, and
+                    running.
+                </div>
+                <div class="deco" style="background:var(--blue)"></div>
+            </div>
+
+            <!-- 10. Green Infrastructure -->
+            <div class="card cg c4">
+                <div class="clbl">🌳 Green Infrastructure</div>
+                <div class="cval">74<span class="cunit">%</span></div>
+                <div class="badge" style="background:rgba(52,199,89,.14);color:var(--gd)">🌿 High Coverage</div>
+                <div class="csub" style="margin-top:8px">3 parks · 12 tree canopy zones · 2 green corridors<br>Detected
+                    via
+                    satellite NDVI imagery</div>
+                <div class="deco" style="background:var(--green)"></div>
+            </div>
+
+            <!-- 11. Carbon Footprint -->
+            <div class="card cg c4">
+                <div class="clbl">🌱 Carbon Footprint Tracker</div>
+                <div class="ccmp">
+                    <div class="ccol">
+                        <div class="ccm">🚗</div>
+                        <div class="ccv bad">2.1 kg</div>
+                        <div class="ccl">Driving</div>
+                    </div>
+                    <div class="ccol">
+                        <div class="ccm">🚇</div>
+                        <div class="ccv" style="color:var(--orange)">0.4 kg</div>
+                        <div class="ccl">Transit</div>
+                    </div>
+                    <div class="ccol zero">
+                        <div class="ccm">🚴</div>
+                        <div class="ccv ok">0 kg</div>
+                        <div class="ccl">Cycling ⭐</div>
+                    </div>
+                </div>
+                <div class="csub" style="margin-top:10px">🏆 Monthly CO₂ saved: <strong style="color:var(--green)">18.6
+                        kg</strong></div>
+                <div class="deco" style="background:var(--green)"></div>
+            </div>
+
+
+
+            <!-- 13. Multi-Modal Routes -->
+            <div class="card ce c6">
+                <div class="clbl">🚦 Multi-Modal Healthy Travel</div>
+                <div class="mmr">
+                    <div class="mms" style="background:rgba(52,199,89,.1);color:var(--gd)">🚶 Walk</div>
+                    <div class="mma">→</div>
+                    <div class="mms" style="background:rgba(0,122,255,.1);color:#004fa3">🚇 Metro</div>
+                    <div class="mma">→</div>
+                    <div class="mms" style="background:rgba(52,199,89,.1);color:var(--gd)">🚶 Walk</div>
+                    <div class="mmstat">
+                        <div class="mmst">⏱ 24 min</div>
+                        <div class="mmst">🌫 AQI 55</div>
+                        <div class="mmst">❤️ 90/100</div>
+                        <div class="mmst">🌱 0.2 kg CO₂</div>
+                    </div>
+                </div>
+                <div class="mmr">
+                    <div class="mms" style="background:rgba(255,159,10,.1);color:#b36200">🚗 Drive</div>
+                    <div class="mma">→</div>
+                    <div class="mms" style="background:rgba(175,82,222,.1);color:#7b2fa8">🚌 Bus</div>
+                    <div class="mma">→</div>
+                    <div class="mms" style="background:rgba(52,199,89,.1);color:var(--gd)">🚶 Walk</div>
+                    <div class="mmstat">
+                        <div class="mmst">⏱ 31 min</div>
+                        <div class="mmst">🌫 AQI 90</div>
+                        <div class="mmst">❤️ 72/100</div>
+                        <div class="mmst">🌱 0.6 kg CO₂</div>
+                    </div>
+                </div>
+                <div class="mmr" style="opacity:.7">
+                    <div class="mms" style="background:rgba(255,59,48,.08);color:#c0392b">🚗 Drive</div>
+                    <div class="mma">→</div>
+                    <div class="mms" style="background:rgba(255,59,48,.08);color:#c0392b">🚗 Drive</div>
+                    <div class="mma">→</div>
+                    <div class="mms" style="background:rgba(255,59,48,.08);color:#c0392b">🚗 Drive</div>
+                    <div class="mmstat">
+                        <div class="mmst">⏱ 18 min</div>
+                        <div class="mmst">🌫 AQI 160</div>
+                        <div class="mmst">❤️ 48/100</div>
+                        <div class="mmst">🌱 2.1 kg CO₂</div>
+                    </div>
+                </div>
+                <div class="deco" style="background:var(--blue)"></div>
+            </div>
+
+            <!-- 14. Impact Summary -->
+            <div class="card cg c6">
+                <div class="clbl">📈 Health Impact Summary</div>
+                <div class="improw">
+                    <div class="impico">😷</div>
+                    <div class="imptxt">Pollution exposure avoided</div>
+                    <div class="impnum">−63%</div>
+                </div>
+                <div class="improw">
+                    <div class="impico">🌡</div>
+                    <div class="imptxt">Heat stress reduced</div>
+                    <div class="impnum">−3°C feel</div>
+                </div>
+                <div class="improw">
+                    <div class="impico">🔊</div>
+                    <div class="imptxt">Noise exposure reduced</div>
+                    <div class="impnum">−27 dB</div>
+                </div>
+                <div class="improw">
+                    <div class="impico">🌱</div>
+                    <div class="imptxt">Carbon footprint saved</div>
+                    <div class="impnum">−1.7 kg</div>
+                </div>
+                <div class="improw">
+                    <div class="impico">🫁</div>
+                    <div class="imptxt">PM2.5 absorbed reduction</div>
+                    <div class="impnum">−75 µg</div>
+                </div>
+                <div class="deco" style="background:var(--green)"></div>
+            </div>
+
+            <!-- 15. Environmental Justice -->
+            <div class="card cb c4">
+                <div class="clbl">⚖️ Environmental Justice Analysis</div>
+                <div style="font-size:12px;color:var(--t2);margin-bottom:6px">Pollution inequality by zone (PM2.5)</div>
+                <div class="ejbar" id="ejbar"></div>
+                <div class="csub" style="margin-top:8px">Industrial zones face 3.4× higher exposure. Policy flag raised
+                    for city
+                    planners.</div>
+                <div class="deco" style="background:var(--red)"></div>
+            </div>
+
+            <!-- 16. CO₂ Chemistry -->
+            <div class="card ci c4">
+                <div class="clbl">🏭 CO₂ & Air Chemistry</div>
+                <div class="cval" style="font-size:32px">412<span class="cunit" style="font-size:14px"> ppm</span></div>
+                <div class="badge" style="background:rgba(142,142,147,.12);color:#3a3a3c">Moderate</div>
+                <canvas class="spark" id="sk-co2"></canvas>
+                <div class="csub">Route avg: 398 ppm · Peak: 448 ppm at Junction B</div>
+                <div class="deco" style="background:#8e8e93"></div>
+            </div>
+
+            <!-- 17. Community Reports -->
+            <div class="card ca c4">
+                <div class="clbl">👥 Community Environmental Reports</div>
+                <div class="repitem">
+                    <div class="repi">🔥</div>
+                    <div class="repb">
+                        <div class="reptt">Garbage burning</div>
+                        <div class="repss">MG Road · 14 reports</div>
+                    </div>
+                    <div class="reptm">12m ago</div>
+                </div>
+                <div class="repitem">
+                    <div class="repi">🌪</div>
+                    <div class="repb">
+                        <div class="reptt">Heavy dust storm</div>
+                        <div class="repss">Outer Ring Rd · 8 reports</div>
+                    </div>
+                    <div class="reptm">34m ago</div>
+                </div>
+                <div class="repitem">
+                    <div class="repi">🏭</div>
+                    <div class="repb">
+                        <div class="reptt">Chemical smell</div>
+                        <div class="repss">Industrial Zone 4 · 22 reports</div>
+                    </div>
+                    <div class="reptm">1h ago</div>
+                </div>
+                <div class="deco" style="background:var(--orange)"></div>
+            </div>
+
+            <!-- 18. Monthly Health Dashboard -->
+            <div class="card cd c4">
+                <div class="clbl">📅 Monthly Exposure Dashboard</div>
+                <div class="mgrid2">
+                    <div class="mcell">
+                        <div class="mcn">320 µg</div>
+                        <div class="mcl">PM2.5 avoided</div>
+                    </div>
+                    <div class="mcell">
+                        <div class="mcn">12 hrs</div>
+                        <div class="mcl">Heat exposure cut</div>
+                    </div>
+                    <div class="mcell">
+                        <div class="mcn">18.6 kg</div>
+                        <div class="mcl">CO₂ saved</div>
+                    </div>
+                    <div class="mcell">
+                        <div class="mcn">94 km</div>
+                        <div class="mcl">Green routes taken</div>
+                    </div>
+                </div>
+                <div class="deco" style="background:var(--green)"></div>
+            </div>
+
+            <!-- 19. UV Index -->
+            <div class="card ch c3">
+                <div class="clbl">☀️ UV Index</div>
+                <div class="cval" style="color:var(--orange)">6<span style="font-size:15px;color:var(--t3)"> /
+                        11+</span></div>
+                <div class="badge" style="background:rgba(255,214,10,.15);color:#a06000">High · SPF 30+</div>
+                <div class="uvsc" id="uvsc"></div>
+                <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-top:4px">
+                    <span>Low</span><span>Mod</span><span>High</span><span>V.H</span><span>Ext</span>
+                </div>
+                <div class="deco" style="background:var(--yellow)"></div>
+            </div>
+
+            <!-- 20. Wind -->
+            <div class="card cj c3">
+                <div class="clbl">💨 Wind</div>
+                <div class="wrow">
+                    <svg class="wcomp" viewBox="0 0 70 70">
+                        <circle cx="35" cy="35" r="31" fill="none" stroke="rgba(0,0,0,.07)" stroke-width="1.5" />
+                        <text x="35" y="11" text-anchor="middle" font-size="9" fill="var(--t3)">N</text>
+                        <text x="35" y="65" text-anchor="middle" font-size="9" fill="var(--t3)">S</text>
+                        <text x="8" y="39" text-anchor="middle" font-size="9" fill="var(--t3)">W</text>
+                        <text x="62" y="39" text-anchor="middle" font-size="9" fill="var(--t3)">E</text>
+                        <polygon points="35,18 31,40 35,36 39,40" fill="var(--teal)" opacity=".9"
+                            transform="rotate(45 35 35)" />
+                    </svg>
+                    <div>
+                        <div class="cval" style="font-size:26px">14<span style="font-size:13px;color:var(--t2)">
+                                km/h</span></div>
+                        <div class="csub">NE · Gentle breeze</div>
+                    </div>
+                </div>
+                <div class="deco" style="background:var(--teal)"></div>
+            </div>
+
+            <!-- 21. Crowd -->
+            <div class="card ce c3">
+                <div class="clbl">👥 Crowd Density</div>
+                <div class="cval" style="font-size:24px">Moderate</div>
+                <div class="cdots" id="cdots"></div>
+                <div class="csub" style="margin-top:8px">Peak in 45 min · Avoid 5–6 PM</div>
+                <div class="deco" style="background:var(--blue)"></div>
+            </div>
+
+            <!-- 22. Runner -->
+            <div class="card cg c3">
+                <div class="clbl">🏃 Runner Friendly</div>
+                <div class="cval" style="font-size:22px">Clean Air ✓</div>
+                <div class="badge" style="background:rgba(52,199,89,.14);color:var(--gd)">AQI &lt; 50</div>
+                <div class="csub" style="margin-top:8px">Best: 6–8 AM · Flat · Park path · SpO₂ safe range</div>
+                <div class="deco" style="background:var(--green)"></div>
+            </div>
+
+            <!-- 23. Smart City Integration -->
+            <div class="card cj c12">
+                <div class="clbl">🏙 Data Sources</div>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:4px">
+                    <div style="text-align:center;padding:12px;background:rgba(0,0,0,.025);border-radius:var(--rsm)">
+                        <div style="font-size:22px">🌡</div>
+                        <div style="font-size:12px;font-weight:500;margin-top:6px">Roadside Sensors</div>
+                        <div class="badge" style="background:rgba(52,199,89,.1);color:var(--gd)">● Live</div>
+                    </div>
+                    <div style="text-align:center;padding:12px;background:rgba(0,0,0,.025);border-radius:var(--rsm)">
+                        <div style="font-size:22px">🛰</div>
+                        <div style="font-size:12px;font-weight:500;margin-top:6px">Satellite Data</div>
+                        <div class="badge" style="background:rgba(52,199,89,.1);color:var(--gd)">● NDVI Live</div>
+                    </div>
+                    <div style="text-align:center;padding:12px;background:rgba(0,0,0,.025);border-radius:var(--rsm)">
+                        <div style="font-size:22px">📸</div>
+                        <div style="font-size:12px;font-weight:500;margin-top:6px">Traffic Cameras</div>
+                        <div class="badge" style="background:rgba(52,199,89,.1);color:var(--gd)">● Live</div>
+                    </div>
+                    <div style="text-align:center;padding:12px;background:rgba(0,0,0,.025);border-radius:var(--rsm)">
+                        <div style="font-size:22px">🌦</div>
+                        <div style="font-size:12px;font-weight:500;margin-top:6px">Weather Stations</div>
+                        <div class="badge" style="background:rgba(52,199,89,.1);color:var(--gd)">● Live</div>
+                    </div>
+                </div>
+                <div class="deco" style="background:var(--teal)"></div>
+            </div>
+
+        </div>
+    </section>
+
+    <section class="bsec">
+        <div class="banner">
+            <div class="bglow"></div>
+            <h2>More than navigation.<br>A <em>healthier city</em>, together.</h2>
+            <p>EcoRoute helps Jabalpur residents find healthier, greener routes — for a cleaner and more sustainable
+                city.</p>
+        </div>
+    </section>
+
+    <script>
+        // MAP
+        const map = L.map('wmap', { center: [23.1815, 79.9864], zoom: 13, zoomControl: true, attributionControl: false });
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 19 }).addTo(map);
+
+        const LD = {
+            aqi: {
+                n: 'Air Quality Index', leg: { t: 'Air Quality Index', mn: 'Good (0)', mx: 'Hazardous (300+)', g: 'linear-gradient(90deg,#34c759,#ffd60a,#ff9f0a,#ff3b30,#8e0000)' },
+                c: [{ l: [23.1815, 79.9864], r: 1800, col: '#ff9f0a', o: .35, p: '<b>Jabalpur City Center</b><br>AQI: 72 — Moderate' }, { l: [23.2000, 79.9500], r: 1200, col: '#34c759', o: .30, p: '<b>Madan Mahal</b><br>AQI: 45 — Good' }, { l: [23.1650, 80.0200], r: 1500, col: '#ff9f0a', o: .40, p: '<b>Adhartal</b><br>AQI: 88 — Moderate' }, { l: [23.1700, 79.9200], r: 1400, col: '#ff3b30', o: .42, p: '<b>Gorakhpur Industrial Area</b><br>AQI: 130 — Unhealthy' }, { l: [23.1298, 79.9450], r: 1100, col: '#34c759', o: .28, p: '<b>Dumna Nature Reserve</b><br>AQI: 28 — Good' }, { l: [23.2100, 80.0000], r: 1000, col: '#ffd60a', o: .32, p: '<b>Wright Town</b><br>AQI: 62 — Moderate' }, { l: [23.1550, 79.9700], r: 900, col: '#34c759', o: .25, p: '<b>Rani Durgavati University</b><br>AQI: 38 — Good' }]
+            }
+        };
+
+        let acs = [];
+        function rl(key) {
+            acs.forEach(c => map.removeLayer(c)); acs = [];
+            const d = LD[key];
+            d.c.forEach(c => {
+                const cr = L.circle(c.l, { radius: c.r, color: c.col, fillColor: c.col, fillOpacity: c.o, weight: 1, opacity: .5 }).addTo(map).bindPopup(c.p);
+                acs.push(cr);
+            });
+            document.getElementById('lt').textContent = d.leg.t;
+            document.getElementById('lg').style.background = d.leg.g;
+            document.getElementById('lmin').textContent = d.leg.mn;
+            document.getElementById('lmax').textContent = d.leg.mx;
+            document.getElementById('aln').textContent = d.n;
+        }
+        rl('aqi');
+
+        // SPARKLINES
+        function drawSpark(id, data, color) {
+            const c = document.getElementById(id); if (!c) return;
+            const dpr = window.devicePixelRatio || 1;
+            c.width = (c.offsetWidth || 240) * dpr; c.height = 48 * dpr;
+            const ctx = c.getContext('2d'); ctx.scale(dpr, dpr);
+            const W = c.width / dpr, H = 48, pad = 3;
+            const mn = Math.min(...data), mx = Math.max(...data);
+            const pts = data.map((v, i) => ({ x: pad + (i / (data.length - 1)) * (W - 2 * pad), y: H - pad - ((v - mn) / (mx - mn + .001)) * (H - 2 * pad) }));
+            const g = ctx.createLinearGradient(0, 0, 0, H);
+            g.addColorStop(0, color + '44'); g.addColorStop(1, color + '00');
+            ctx.beginPath(); ctx.moveTo(pts[0].x, H); pts.forEach(p => ctx.lineTo(p.x, p.y)); ctx.lineTo(pts[pts.length - 1].x, H); ctx.closePath();
+            ctx.fillStyle = g; ctx.fill();
+            ctx.beginPath(); pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+            ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.stroke();
+        }
+        setTimeout(() => {
+            drawSpark('sk-humid', [60, 62, 68, 72, 75, 74, 70, 68, 65, 63, 61, 60], '#007aff');
+            drawSpark('sk-co2', [398, 402, 410, 412, 420, 415, 408, 412, 418, 415, 412, 414], '#8e8e93');
+        }, 120);
+
+        // PRECIP
+        const pD = [2, 5, 8, 12, 9, 6], pL = ['Now', '1h', '2h', '3h', '4h', '5h'], mxP = Math.max(...pD);
+        pD.forEach((v, i) => {
+            const b = document.createElement('div'); b.className = 'pb'; b.style.height = (v / mxP * 100) + '%'; document.getElementById('pbars').appendChild(b);
+            const l = document.createElement('div'); l.className = 'pbl'; l.textContent = pL[i]; document.getElementById('pblbls').appendChild(l);
+        });
+
+        // UV
+        ['#34c759', '#34c759', '#ffd60a', '#ffd60a', '#ff9f0a', '#ff9f0a', '#ff3b30', '#ff3b30', '#8e0000', '#8e0000', '#af52de'].forEach((c, i) => {
+            const s = document.createElement('div'); s.className = 'uvs' + (i >= 6 ? ' off' : ''); s.style.background = c;
+            document.getElementById('uvsc').appendChild(s);
+        });
+
+        // CROWD
+        const cd = document.getElementById('cdots');
+        for (let i = 0; i < 30; i++) { const d = document.createElement('div'); d.className = 'cdot' + (i < 14 ? ' on' : ''); cd.appendChild(d); }
+
+        // AI FORECAST
+        [{ t: 'Now', v: 72, c: '#ff9f0a' }, { t: '+1h', v: 80, c: '#ff9f0a' }, { t: '+2h', v: 95, c: '#ff3b30' }, { t: '+3h', v: 110, c: '#ff3b30' }, { t: '+4h', v: 135, c: '#ff3b30' }, { t: '+5h', v: 190, c: '#8e0000' }, { t: '+6h', v: 165, c: '#ff3b30' }].forEach(p => {
+            const r = document.createElement('div'); r.className = 'prow';
+            r.innerHTML = `<div class="ptm">${p.t}</div><div class="pbg"><div class="pbl2" style="width:${p.v / 2}%;background:${p.c}"></div></div><div class="pval" style="color:${p.c}">${p.v}</div>`;
+            document.getElementById('ptl').appendChild(r);
+        });
+
+        // ENV JUSTICE
+        [{ n: 'Industrial', v: 186, c: '#ff3b30' }, { n: 'Downtown', v: 95, c: '#ff9f0a' }, { n: 'Suburbs', v: 48, c: '#ffd60a' }, { n: 'Parks', v: 22, c: '#34c759' }].forEach(e => {
+            const z = document.createElement('div'); z.className = 'ejzone';
+            z.innerHTML = `<div class="ejn">${e.n}</div><div class="ejbg"><div class="ejfill" style="width:${e.v / 200 * 100}%;background:${e.c}"></div></div><div class="ejsc" style="color:${e.c}">${e.v}</div>`;
+            document.getElementById('ejbar').appendChild(z);
+        });
+
+        // MODE BUTTONS
+        let selectedMode = 'walk';
+        document.querySelectorAll('.mbtn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.mbtn').forEach(b => b.classList.remove('ac'));
+                btn.classList.add('ac');
+                const title = btn.getAttribute('title');
+                if (title === 'Walk') selectedMode = 'walk';
+                else if (title === 'Cycle') selectedMode = 'cycle';
+                else if (title === 'Drive') selectedMode = 'drive';
+                else if (title === 'Transit') selectedMode = 'transit';
+            });
+        });
+
+        // ──────────────────────────────────────────────
+        // API BASE URL
+        // ──────────────────────────────────────────────
+        const API_BASE = 'http://127.0.0.1:8000';
+
+        // ──────────────────────────────────────────────
+        // 1. POLLUTION HEATMAP (replaces circle markers)
+        // ──────────────────────────────────────────────
+        let heatLayer = null;
+
+        async function loadSensors() {
+            try {
+                const res = await fetch(`${API_BASE}/sensors`);
+                if (!res.ok) throw new Error(`Sensors API error: ${res.status}`);
+                const data = await res.json();
+                const points = (data.sensors || []).map(s => [s.lat, s.lon, s.pm25 / 200]);
+                if (heatLayer) {
+                    map.removeLayer(heatLayer);
+                }
+                heatLayer = L.heatLayer(points, {
+                    radius: 30,
+                    blur: 25
+                }).addTo(map);
+            } catch (err) {
+                console.error('Failed to load sensors:', err);
+            }
+        }
+
+        // ──────────────────────────────────────────────
+        // 2. COMMUNITY POLLUTION REPORTS
+        // ──────────────────────────────────────────────
+        async function loadCommunityReports() {
+            try {
+                const res = await fetch(`${API_BASE}/community_reports`);
+                if (!res.ok) throw new Error(`Community reports API error: ${res.status}`);
+                const data = await res.json();
+                (data.reports || []).forEach(r => {
+                    L.marker([r.lat, r.lon]).addTo(map)
+                        .bindPopup(`<b>⚠ ${r.type}</b><br>${r.description}`);
+                });
+            } catch (err) {
+                console.error('Failed to load community reports:', err);
+            }
+        }
+
+        // ──────────────────────────────────────────────
+        // 3. DRAW ROUTE HELPER
+        // ──────────────────────────────────────────────
+        let currentRoute = null;
+        let routePopup = null;
+
+        function drawRoute(route) {
+            // Remove previous route and popup if they exist
+            if (currentRoute) {
+                map.removeLayer(currentRoute);
+                currentRoute = null;
+            }
+            if (routePopup) {
+                map.removeLayer(routePopup);
+                routePopup = null;
+            }
+            // route.coordinates is [[lat, lon], ...]
+            const coords = route.coordinates;
+            currentRoute = L.polyline(coords, {
+                color: 'green',
+                weight: 6
+            }).addTo(map);
+            // Zoom map to route bounds
+            map.fitBounds(currentRoute.getBounds(), { padding: [40, 40] });
+            // Show popup at middle coordinate
+            if (coords.length > 0) {
+                const midIdx = Math.floor(coords.length / 2);
+                const midCoord = coords[midIdx];
+                routePopup = L.popup()
+                    .setLatLng(midCoord)
+                    .setContent('🌿 <b>Clean Route</b><br>Estimated Pollution Exposure: Low')
+                    .openOn(map);
+            }
+        }
+
+        // ──────────────────────────────────────────────
+        // 4. FIND CLEAN ROUTE
+        // ──────────────────────────────────────────────
+        async function findRoute() {
+            try {
+                // Use map center as origin
+                const center = map.getCenter();
+                const origin_lat = center.lat;
+                const origin_lon = center.lng;
+                const dest_lat = 23.2000;
+                const dest_lon = 79.9500;
+                const mode = selectedMode;
+
+                const params = new URLSearchParams({
+                    origin_lat, origin_lon,
+                    dest_lat, dest_lon,
+                    mode
+                });
+
+                const res = await fetch(`${API_BASE}/route?${params}`);
+                if (!res.ok) throw new Error(`Route API error: ${res.status}`);
+                const data = await res.json();
+
+                if (data.cleanest_route && data.cleanest_route.coordinates) {
+                    drawRoute(data.cleanest_route);
+                } else {
+                    alert('No route data returned from server.');
+                }
+            } catch (err) {
+                console.error('Failed to find route:', err);
+                alert('Error fetching route. Make sure the backend is running.');
+            }
+        }
+
+        // ──────────────────────────────────────────────
+        // 5. AI POLLUTION PREDICTION
+        // ──────────────────────────────────────────────
+        async function predictPollution() {
+            try {
+                const body = {
+                    temperature: 30,
+                    humidity: 70,
+                    traffic: 60,
+                    hour: 18
+                };
+
+                const res = await fetch(`${API_BASE}/predict_pollution`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (!res.ok) throw new Error(`Prediction API error: ${res.status}`);
+                const data = await res.json();
+
+                // Display predicted PM2.5 in the AI Forecast card on the map overlay
+                const forecastEl = document.querySelector('.mpv2');
+                if (forecastEl && data.predicted_pm25 !== undefined) {
+                    forecastEl.textContent = `Predicted PM2.5: ${data.predicted_pm25}`;
+                }
+            } catch (err) {
+                console.error('Failed to predict pollution:', err);
+            }
+        }
+
+        // ──────────────────────────────────────────────
+        // AUTO-INIT: load all data on page load
+        // ──────────────────────────────────────────────
+        window.addEventListener('load', () => {
+            loadSensors();
+            loadCommunityReports();
+            predictPollution();
+        });
+    </script>
+</body>
+
+</html>

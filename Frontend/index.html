@@ -698,40 +698,71 @@ function renderRoutes(data,o,d,oTxt,dTxt){
     const card=document.createElement('div');
     card.className='rc'+(isBest?' best-health':'')+(i===0?' selected':'');
     card.innerHTML=`<div class="rc-name">${r.route_name||'Route '+(i+1)}</div>
-      <div class="rc-aqi" style="color:${col}">${r.avg_aqi}</div>
+      <div class="rc-aqi" style="color:${col}">${Math.round(r.avg_aqi)}</div>
       <div style="font-size:11px;color:var(--t3);margin-top:4px">${aqiLabel(r.avg_aqi)}</div>
       <div class="rc-bar"><div class="rc-fill" style="width:${Math.min(r.avg_aqi/300*100,100)}%;background:${col}"></div></div>
       <div class="rc-meta">
-        <div class="rc-mi"><div class="rc-mk">Distance</div><div class="rc-mv">${r.distance_km} km</div></div>
-        <div class="rc-mi"><div class="rc-mk">Duration</div><div class="rc-mv">${r.duration_min} min</div></div>
-        <div class="rc-mi"><div class="rc-mk">PM2.5</div><div class="rc-mv">${r.avg_pm25} µg/m³</div></div>
-        <div class="rc-mi"><div class="rc-mk">Exposure</div><div class="rc-mv">${r.total_exposure} µg·h</div></div>
+        <div class="rc-mi"><div class="rc-mk">Distance</div><div class="rc-mv">${Math.round(r.distance_km)} km</div></div>
+        <div class="rc-mi"><div class="rc-mk">Duration</div><div class="rc-mv">${Math.round(r.duration_min)} min</div></div>
+        <div class="rc-mi"><div class="rc-mk">PM2.5</div><div class="rc-mv">${Math.round(r.avg_pm25)} µg/m³</div></div>
+        <div class="rc-mi"><div class="rc-mk">Exposure</div><div class="rc-mv">${Math.round(r.total_exposure)} µg·h</div></div>
       </div>`;
     card.addEventListener('click',()=>{
       document.querySelectorAll('.rc').forEach(c=>c.classList.remove('selected'));
       card.classList.add('selected');
-      drawRouteOnMap(r,o,d);
+      drawRouteOnMap(routes,o,d);
       showDetail(r,oTxt,dTxt);
     });
     cardsEl.appendChild(card);
   });
-  drawRouteOnMap(data.cleanest_route,o,d);
+  drawRouteOnMap(data.all_routes,o,d);
   showDetail(data.cleanest_route,oTxt,dTxt);
   if(routeMap)setTimeout(()=>routeMap.invalidateSize(),200);
 }
 
-function drawRouteOnMap(r,o,d){
-  if(!routeMap)return;
-  routeLines.forEach(l=>routeMap.removeLayer(l));routeLines=[];
-  const col=aqiColor(r.avg_aqi);
-  if(r.coordinates&&r.coordinates.length>1){
-    const ll=r.coordinates.map(c=>[c[1],c[0]]);
-    const line=L.polyline(ll,{color:col,weight:5,opacity:.85}).addTo(routeMap);
-    routeLines.push(line);routeMap.fitBounds(line.getBounds(),{padding:[30,30]});
-  }
-  const mk=(col)=>L.divIcon({className:'',html:`<div style="width:14px;height:14px;border-radius:50%;background:${col};border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,.4)"></div>`,iconAnchor:[7,7]});
-  routeLines.push(L.marker([o.lat,o.lon],{icon:mk('#22c55e')}).addTo(routeMap).bindPopup('📍 Start'));
-  routeLines.push(L.marker([d.lat,d.lon],{icon:mk('#ef4444')}).addTo(routeMap).bindPopup('🎯 Destination'));
+function drawRouteOnMap(routes,o,d){
+
+  if(!routeMap) return;
+
+  // clear old routes once
+  routeLines.forEach(l => routeMap.removeLayer(l));
+  routeLines = [];
+
+  const colors = {
+    "Fastest Route":"#ef4444",
+    "Balanced Route":"#eab308",
+    "Cleanest Route":"#22c55e"
+  };
+
+  routes.forEach(r => {
+
+    if(!r.coordinates || r.coordinates.length < 2) return;
+
+    const ll = r.coordinates.map(c => [c[1],c[0]]);
+    const col = colors[r.route_name] || "#3b82f6";
+
+    const line = L.polyline(ll,{
+      color:col,
+      weight:5,
+      opacity:0.9
+    }).addTo(routeMap);
+
+    routeLines.push(line);
+  });
+
+  const group = new L.featureGroup(routeLines);
+  routeMap.fitBounds(group.getBounds(),{padding:[30,30]});
+
+  const mk=(col)=>L.divIcon({
+    className:'',
+    html:`<div style="width:14px;height:14px;border-radius:50%;background:${col};border:3px solid white"></div>`,
+    iconAnchor:[7,7]
+  });
+
+  routeLines.push(
+    L.marker([o.lat,o.lon],{icon:mk("#22c55e")}).addTo(routeMap),
+    L.marker([d.lat,d.lon],{icon:mk("#ef4444")}).addTo(routeMap)
+  );
 }
 
 function showDetail(r,oTxt,dTxt){

@@ -4,6 +4,7 @@ Scores routes by pollution exposure and distance.
 """
 
 import math, random
+from shutil import copy
 import requests
 import polyline
 
@@ -69,7 +70,9 @@ def rank_routes(ors_routes):
 
     for i, r in enumerate(ors_routes):
 
+        # Convert ORS coordinates [lon, lat] → [lat, lon] for Leaflet
         coords = r["geometry"]["coordinates"]
+
         summary = r["properties"]["summary"]
 
         distance_km = round(summary["distance"] / 1000, 2)
@@ -78,39 +81,48 @@ def rank_routes(ors_routes):
         pollution_samples = []
         pm_samples = []
 
+        # Sample pollution along the route
         for lon, lat in coords[::20]:
             sensor = get_nearest_sensor(lat, lon)
             pollution_samples.append(sensor["aqi"])
             pm_samples.append(sensor["pm25"])
 
-        avg_aqi = round(sum(pollution_samples) / len(pollution_samples))
+        avg_aqi = round(sum(pollution_samples) / len(pollution_samples), 1)
         avg_pm25 = round(sum(pm_samples) / len(pm_samples), 1)
 
         total_exposure = avg_pm25 * (duration_min / 60)
         route_score = calculate_route_score(avg_aqi, distance_km)
 
         routes.append({
-            "distance_km": distance_km,
+         "distance_km": distance_km,
             "duration_min": duration_min,
-            "avg_aqi": avg_aqi,
+         "avg_aqi": avg_aqi,
             "avg_pm25": avg_pm25,
-            "total_exposure": round(total_exposure, 2),
-            "route_score": route_score,
-            "coordinates": [[lat, lon] for lon, lat in coords]
-        })
+         "total_exposure": round(total_exposure, 2),
+         "route_score": route_score,
+         # convert ORS [lon,lat] → Leaflet [lat,lon]
+          "coordinates": [[lat, lon] for lon, lat in coords]
+        
+})
 
-    # Ensure at least 3 routes exist
+  # Ensure at least 3 routes exist
     while len(routes) < 3:
-        clone = routes[0].copy()
+        clone = copy.deepcopy(routes[0])
         clone["duration_min"] *= random.uniform(1.05, 1.15)
         clone["avg_aqi"] *= random.uniform(0.9, 1.1)
-        clone["route_score"] = calculate_route_score(clone["avg_aqi"], clone["distance_km"])
+        clone["route_score"] = calculate_route_score(
+            clone["avg_aqi"], clone["distance_km"]
+        )
         routes.append(clone)
 
-    # Rank routes
+    # Rank routes (FIXED indentation)
     fastest = min(routes, key=lambda r: r["duration_min"])
-    cleanest = min(routes, key=lambda r: r["avg_aqi"])
-    balanced = min(routes, key=lambda r: r["route_score"])
+    remaining = [r for r in routes if r != fastest]
+
+    cleanest = min(remaining, key=lambda r: r["avg_aqi"])
+    remaining = [r for r in remaining if r != cleanest]
+
+    balanced = min(remaining, key=lambda r: r["route_score"])
 
     fastest["route_name"] = "Fastest Route"
     cleanest["route_name"] = "Cleanest Route"
@@ -197,3 +209,13 @@ def get_real_routes(origin_lat, origin_lon, dest_lat, dest_lon):
         })
 
     return routes
+
+def generate_alternative_waypoints(lat1, lon1, lat2, lon2):
+
+    mid_lat = (lat1 + lat2) / 2
+    mid_lon = (lon1 + lon2) / 2
+
+    return [
+        [mid_lon + 0.02, mid_lat],   # east detour
+        [mid_lon - 0.02, mid_lat],   # west detour
+    ]

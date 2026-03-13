@@ -17,6 +17,8 @@ EcoRoute calculates and compares three route options:
 * **Cleanest Route** – lowest pollution exposure
 * **Balanced Route** – optimized between speed and air quality
 
+![Route Comparison](Images/RouteComparision.png)
+
 ---
 
 ### 🌫️ Live Air Quality Map
@@ -51,9 +53,11 @@ For every route EcoRoute calculates:
 * Total exposure during travel
 * Health score
 
-📸 *Route Comparison*
+📸 *Pollution Analysis*
+![Pollution Annalysis](Images/Pollution Exposure Analysis1.png)
+![Pollution Annalysis](Images/Pollution Exposure Analysis2.png)
 
-![Route Comparison](Images/RouteComparision.png)
+
 
 ---
 ## 🧑‍🤝‍🧑 Community Pollution Reporting

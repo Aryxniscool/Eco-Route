@@ -67,7 +67,7 @@ EcoRoute supports both **light mode and dark mode** for better usability and acc
 
 📸 *Dark Mode*
 
-![Dark Mode](DarkMode.png)
+![Dark Mode](Images/DarkMode.png)
 
 ---
 

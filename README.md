@@ -71,7 +71,7 @@ Community reports are visualized on the map to provide **additional environmenta
 
 📸 *Community Submission Interface*
 
-![Community Reports](CommunityReports.png)
+![Community Reports](Images/CommunityReports.png)
 
 ---
 

@@ -54,8 +54,8 @@ For every route EcoRoute calculates:
 * Health score
 
 📸 *Pollution Analysis*
-![Pollution Annalysis](Images/Pollution Exposure Analysis1.png)
-![Pollution Annalysis](Images/Pollution Exposure Analysis2.png)
+![Pollution Annalysis](Images/PollutionExposureAnalysis1.png)
+![Pollution Annalysis](Images/PollutionExposureAnalysis2.png)
 
 
 

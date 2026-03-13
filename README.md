@@ -56,6 +56,24 @@ For every route EcoRoute calculates:
 ![Route Comparison](Images/RouteComparision.png)
 
 ---
+## 🧑‍🤝‍🧑 Community Pollution Reporting
+
+EcoRoute enables users to **contribute real-time pollution reports** from their surroundings, helping improve the accuracy of the platform’s air quality data.
+
+For every community submission EcoRoute records:
+
+• Location of the report  
+• Type of pollution (smoke, dust, waste burning, traffic congestion)  
+• Description of the issue  
+• Timestamp of the observation  
+
+Community reports are visualized on the map to provide **additional environmental insights** and help other users avoid polluted areas.
+
+📸 *Community Submission Interface*
+
+![Community Reports](CommunityReports.png)
+
+---
 
 ### 🌗 Light & Dark Mode
 

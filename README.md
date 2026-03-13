@@ -27,7 +27,7 @@ EcoRoute calculates and compares three route options:
 
 📸 *Map Preview*
 
-![Live AQI Map](images/LiveAirQualityMapDark.png)
+![Live AQI Map](Images/LiveAirQualityMapDark.png)
 
 
 ---
@@ -38,7 +38,7 @@ EcoRoute uses AI to predict future air quality trends to help users plan routes 
 
 📸 *AI Prediction Dashboard*
 
-![AI Prediction](images/AiPollutionPredictor.png)
+![AI Prediction](Images/AiPollutionPredictor.png)
 
 ---
 
@@ -53,7 +53,7 @@ For every route EcoRoute calculates:
 
 📸 *Route Comparison*
 
-![Route Comparison](images/RouteComparision.png)
+![Route Comparison](Images/RouteComparision.png)
 
 ---
 
@@ -63,11 +63,11 @@ EcoRoute supports both **light mode and dark mode** for better usability and acc
 
 📸 *Light Mode*
 
-![Light Mode](images/LightMode.png)
+![Light Mode](Images/LightMode.png)
 
 📸 *Dark Mode*
 
-![Dark Mode](DarkMode.png)
+![Dark Mode](Images/DarkMode.png)
 
 ---
 

@@ -37,7 +37,7 @@ async def get_route(
     mode: str = Query("walk", description="Transport mode: walk, cycle, drive"),
 ):
     """
-    Get 2-3 routes between origin and destination
+    Get 3 routes between origin and destination
     scored by pollution exposure and distance.
     """
 
@@ -46,87 +46,99 @@ async def get_route(
     # Try OpenRouteService API
     if ORS_API_KEY:
         try:
-            async with httpx.AsyncClient(timeout=10) as client:
-                resp = await client.get(
-                    f"{ORS_BASE_URL}/{profile}",
-                    params={
-                        "api_key": ORS_API_KEY,
-                        "start": f"{origin_lon},{origin_lat}",
-                        "end": f"{dest_lon},{dest_lat}",
-                        "alternative_routes[share_factor]": 0.6,
-                        "alternative_routes[target_count]": 3,
+            async with httpx.AsyncClient(timeout=15) as client:
+                resp = await client.post(
+                    f"{ORS_BASE_URL}/{profile}/geojson",
+                    headers={
+                        "Authorization": ORS_API_KEY,
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "coordinates": [
+                            [origin_lon, origin_lat],
+                            [dest_lon, dest_lat],
+                        ],
+                        "alternative_routes": {
+                            "share_factor": 0.6,
+                            "target_count": 3
+                        }
                     },
                 )
+
+                parsed_routes = []
 
                 if resp.status_code == 200:
                     data = resp.json()
                     features = data.get("features", [])
 
-                    parsed_routes = []
-
                     for f in features:
                         coords = f["geometry"]["coordinates"]
-
+                        if not coords or len(coords) < 2:
+                            continue
                         parsed_routes.append({
-                            "geometry": {
-                                "coordinates": coords
-                            },
+                            "geometry": {"coordinates": coords},
                             "properties": {
                                 "summary": {
                                     "distance": f["properties"]["summary"]["distance"],
-                                    "duration": f["properties"]["summary"]["duration"]
+                                    "duration": f["properties"]["summary"]["duration"],
                                 }
-                            }
+                            },
                         })
 
-                    if parsed_routes:
-                        # If ORS returns less than 3 routes, create waypoint alternatives
-                        if len(parsed_routes) < 3:
-                            mid_lat = (origin_lat + dest_lat) / 2
-                            mid_lon = (origin_lon + dest_lon) / 2
+                # 2) If ORS returned fewer than 3, generate alternatives via
+                #    waypoint detours using the POST endpoint
+                if len(parsed_routes) < 3:
+                    mid_lat = (origin_lat + dest_lat) / 2
+                    mid_lon = (origin_lon + dest_lon) / 2
 
-                            waypoint_offsets = [
-                                (0.02, 0),
-                                (-0.02, 0),
-                            ]
+                    waypoint_offsets = [
+                        (0.02, 0),
+                        (-0.02, 0),
+                    ]
 
-                            # try adding alternative routes via slightly offset waypoints
-                            for off_lon, off_lat in waypoint_offsets:
-                                wp_lon = mid_lon + off_lon
-                                wp_lat = mid_lat + off_lat
+                    for off_lon, off_lat in waypoint_offsets:
+                        if len(parsed_routes) >= 3:
+                            break
 
-                                resp2 = await client.get(
-                                    f"{ORS_BASE_URL}/{profile}",
-                                    params={
-                                        "api_key": ORS_API_KEY,
-                                        "start": f"{origin_lon},{origin_lat}",
-                                        "end": f"{dest_lon},{dest_lat}",
-                                        "via": f"{wp_lon},{wp_lat}",
+                        wp_lon = mid_lon + off_lon
+                        wp_lat = mid_lat + off_lat
+
+                        # Use POST endpoint with intermediate waypoint
+                        resp2 = await client.post(
+                            f"{ORS_BASE_URL}/{profile}/geojson",
+                            headers={
+                                "Authorization": ORS_API_KEY,
+                                "Content-Type": "application/json",
+                            },
+                            json={
+                                "coordinates": [
+                                    [origin_lon, origin_lat],
+                                    [wp_lon, wp_lat],
+                                    [dest_lon, dest_lat],
+                                ],
+                            },
+                        )
+
+                        if resp2.status_code == 200:
+                            data2 = resp2.json()
+                            features2 = data2.get("features", [])
+
+                            for f2 in features2:
+                                coords2 = f2["geometry"]["coordinates"]
+                                if not coords2 or len(coords2) < 2:
+                                    continue
+                                parsed_routes.append({
+                                    "geometry": {"coordinates": coords2},
+                                    "properties": {
+                                        "summary": {
+                                            "distance": f2["properties"]["summary"]["distance"],
+                                            "duration": f2["properties"]["summary"]["duration"],
+                                        }
                                     },
-                                )
-                                if resp2.status_code == 200:
-                                    data2 = resp2.json()
-                                    features2 = data2.get("features", [])
+                                })
 
-                                    for f2 in features2:
-                                        coords2 = f2["geometry"]["coordinates"]
-                                        parsed_routes.append({
-                                            "geometry": {"coordinates": coords2},
-                                            "properties": {
-                                                "summary": {
-                                                    "distance": f2["properties"]["summary"]["distance"],
-                                                    "duration": f2["properties"]["summary"]["duration"],
-                                                }
-                                            },
-                                        })
-
-                                if len(parsed_routes) >= 3:
-                                    # got enough routes, stop generating more
-                                    break
-
-                        return rank_routes(parsed_routes[:3])
-
-
+                if parsed_routes:
+                    return rank_routes(parsed_routes[:3])
 
         except Exception as e:
             print(f"ORS API error: {e}")
@@ -199,7 +211,7 @@ async def forecast(req: ForecastRequest):
             req.humidity,
             req.traffic,
             req.start_hour,
-            req.hours
+            req.hours,
         )
     }
 
@@ -229,17 +241,11 @@ async def report_pollution(report: PollutionReport):
 
     community_reports.append(entry)
 
-    return {
-        "status": "submitted",
-        "report": entry
-    }
+    return {"status": "submitted", "report": entry}
 
 
 @router.get("/community_reports")
 async def get_community_reports():
     """Get all community pollution reports."""
 
-    return {
-        "reports": community_reports,
-        "count": len(community_reports)
-    }
+    return {"reports": community_reports, "count": len(community_reports)}

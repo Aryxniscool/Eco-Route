@@ -2138,7 +2138,10 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    const API = 'http://127.0.0.1:8000';
+    const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://127.0.0.1:8000'
+  : 'https://eco-route.onrender.com';
+
     let mainMap = null, routeMap = null;
     let activeLayers = [], routeLines = [];
     let currentMode = 'walk', sensorData = [];

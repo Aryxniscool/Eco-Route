@@ -1645,7 +1645,12 @@
       color: var(--t3)
     }
 
-    40px
+    /* VIDEO AD */
+
+    @media(max-width:900px) {
+      .hero {
+        grid-template-columns: 1fr;
+        padding: 50px 20px 40px
       }
 
       .hero-right {
@@ -1668,11 +1673,6 @@
       .span4 {
         grid-column: span 2
       }
-
-    @media(max-width:900px) {
-      .hero {
-        grid-template-columns: 1fr;
-        padding: 50px 20px 
 
       .cgrid,
       .pgrid {
@@ -1704,6 +1704,11 @@
 </head>
 
 <body>
+      <div class="skip-wrap">
+        <button class="skip-btn" id="skipBtn" disabled>Skip in <span id="skipCount">5</span>s</button>
+      </div>
+    </div>
+  </div>
 
   <!-- NAV -->
   <nav>
@@ -1902,7 +1907,10 @@
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
         <div>
           <div class="page-title">📡 Live Air Quality Map</div>
-          <div class="page-sub">Real-time AQI from 25 IoT sensors across Jabalpur</div>
+          <div class="page-sub" style="display:flex;align-items:center;gap:10px">
+  Real-time AQI from 25 IoT sensors across Jabalpur
+  <span style="font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;padding:3px 8px;border-radius:6px;background:rgba(59,130,246,.12);color:#3b82f6;border:1px solid rgba(59,130,246,.25)">Simulated</span>
+</div>
         </div>
         <button class="refresh-btn" onclick="refreshMap()"><span id="ri">🔄</span> Refresh</button>
       </div>
@@ -1938,7 +1946,14 @@
           <div style="font-size:13px;font-weight:600;margin-top:2px" id="mapAiBadge">Loading...</div>
         </div>
       </div>
-      <div id="sensorGridBelow" class="sensor-grid-below"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:24px 0 12px">
+  <div style="font-size:12px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.8px">Sensor Grid — 25 Zones</div>
+  <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#3b82f6">
+    <div style="width:6px;height:6px;border-radius:50%;background:#3b82f6"></div>
+    Simulated IoT data · Real WAQI station data shown in dashboard
+  </div>
+</div>
+<div id="sensorGridBelow" class="sensor-grid-below"></div>
     </div>
   </div>
 
@@ -2055,7 +2070,6 @@
     const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://127.0.0.1:8000'
   : 'https://eco-route.onrender.com';
-
     let mainMap = null, routeMap = null;
     let activeLayers = [], routeLines = [];
     let currentMode = 'walk', sensorData = [];
@@ -2093,12 +2107,6 @@
       t.textContent = msg; t.className = 'show' + (err ? ' error' : '');
       setTimeout(() => t.className = '', 3500);
     }
-
-    // VIDEO AD
-    let adN = 5;
-    const skipBtn = document.getElementById('skipBtn');
-    const adT = setInterval(() => { adN--; document.getElementById('skipCount').textContent = adN; if (adN <= 0) { clearInterval(adT); skipBtn.disabled = false; skipBtn.textContent = 'Skip Ad ✕'; } }, 1000);
-
     // PAGE NAV
     function showPage(name) {
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -2164,42 +2172,7 @@
         toast('✅ Live data loaded — ' + sensorData.length + ' sensors active');
       } catch (e) {
         document.getElementById('footerStatus').textContent = '⚠ Backend offline. Please try again shortly.';
-        toast('⚠ Backend offline. Run uvicorn main:app --reload', true);
-      }
-    }
-    // ── LIVE CONDITIONS (WAQI + Open-Meteo) ──
-    async function loadLiveConditions() {
-      try {
-        const d = await api('/live_conditions?lat=23.1815&lon=79.9864');
-
-        // Hero AQI — override simulated value with real one
-        if (d.aqi) {
-          const heroEl = document.getElementById('heroAqi');
-          heroEl.textContent = d.aqi;
-          heroEl.style.color =
-            d.aqi <= 50  ? 'var(--green)'  :
-            d.aqi <= 100 ? 'var(--yellow)' :
-            d.aqi <= 150 ? 'var(--orange)' : 'var(--red)';
-        }
-
-        // Hero card PM2.5 bar
-        if (d.pm25) {
-          document.getElementById('fiv-pm25').textContent = d.pm25.toFixed(1) + ' µg/m³';
-          document.getElementById('fi-pm25').style.width = Math.min(d.pm25 / 150 * 100, 100) + '%';
-        }
-
-        // Hero card NO₂ bar
-        if (d.no2) {
-          document.getElementById('fiv-no2').textContent = d.no2.toFixed(1) + ' ppb';
-          document.getElementById('fi-no2').style.width = Math.min(d.no2 / 100 * 100, 100) + '%';
-        }
-
-        // Footer status with station name
-        document.getElementById('footerStatus').textContent =
-          `✅ Live AQI: ${d.aqi} · ${d.temperature}°C · ${d.humidity}% humidity · Station: ${d.station}`;
-
-      } catch(e) {
-        console.warn('Live conditions unavailable, using sensor data', e);
+        toast('⚠ Backend offline. Please try again shortly.', true);
       }
     }
 
@@ -2709,40 +2682,41 @@
       } catch (e) { toast('⚠ Failed to submit. Is backend running?', true); }
       btn.disabled = false; btn.textContent = '📤 Submit to City Dashboard';
     }
+
+
+    // ── LIVE CONDITIONS (WAQI + Open-Meteo) ──
     async function loadLiveConditions() {
-    // Jabalpur coordinates — or use browser geolocation
-    const lat = 23.1815, lon = 79.9864;
-    
-    try {
-        const data = await apiFetch(`/live_conditions?lat=${lat}&lon=${lon}`);
-        
-        // Update your dashboard elements
-        document.getElementById('city-aqi').textContent = data.aqi;
-        document.getElementById('city-pm25').textContent = data.pm25 ?? '—';
-        document.getElementById('city-temp').textContent = `${data.temperature}°C`;
-        document.getElementById('city-humidity').textContent = `${data.humidity}%`;
-        
-        // Color the AQI badge based on level
-        const aqiBadge = document.getElementById('aqi-badge');
-        if (data.aqi <= 50) aqiBadge.style.color = 'var(--green)';
-        else if (data.aqi <= 100) aqiBadge.style.color = 'var(--yellow)';
-        else if (data.aqi <= 150) aqiBadge.style.color = 'var(--orange)';
-        else aqiBadge.style.color = 'var(--red)';
-        
-    } catch(e) {
-        console.error('Live conditions fetch failed', e);
+      try {
+        const d = await api('/live_conditions?lat=23.1815&lon=79.9864');
+        if (d.aqi) {
+          const heroEl = document.getElementById('heroAqi');
+          heroEl.textContent = d.aqi;
+          heroEl.style.color =
+            d.aqi <= 50  ? 'var(--green)'  :
+            d.aqi <= 100 ? 'var(--yellow)' :
+            d.aqi <= 150 ? 'var(--orange)' : 'var(--red)';
+        }
+        if (d.pm25) {
+          document.getElementById('fiv-pm25').textContent = d.pm25.toFixed(1) + ' µg/m³';
+          document.getElementById('fi-pm25').style.width = Math.min(d.pm25 / 150 * 100, 100) + '%';
+        }
+        if (d.no2) {
+          document.getElementById('fiv-no2').textContent = d.no2.toFixed(1) + ' ppb';
+          document.getElementById('fi-no2').style.width = Math.min(d.no2 / 100 * 100, 100) + '%';
+        }
+        document.getElementById('footerStatus').textContent =
+          `✅ Live AQI: ${d.aqi} · ${d.temperature}°C · ${d.humidity}% humidity · Station: ${d.station}`;
+      } catch(e) {
+        console.warn('Live conditions unavailable, using sensor data', e);
+      }
     }
-}
-  // Call on load and refresh every 10 minutes
-  loadLiveConditions();
-  setInterval(loadLiveConditions, 10 * 60 * 1000);
 
     // ── INIT ──
     window.addEventListener('load', () => {
       loadHomeData();
       loadLiveConditions();
       setInterval(loadHomeData, 60000);
-      setInterval(loadLiveConditions, 10 * 60 * 1000); // refresh every 10 min
+      setInterval(loadLiveConditions, 10 * 60 * 1000);
     });
   </script>
   <div id="toast"></div>

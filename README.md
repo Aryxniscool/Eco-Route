@@ -94,25 +94,27 @@ EcoRoute supports both **light mode and dark mode** for better usability and acc
 ---
 
 
-# 🏗️ Tech Stack
+## 🏗️ Tech Stack
 
 **Frontend**
-
-* React / Next.js
-* Tailwind CSS
-* Leaflet.js (Map Visualization)
+- HTML5, CSS3, JavaScript (Vanilla)
+- Leaflet.js (map visualization)
 
 **Backend**
+- Python 3.11
+- FastAPI
+- scikit-learn (ML pollution prediction)
+- httpx (async API calls)
 
-* FastAPI
-* Python
+**APIs & Data**
+- OpenRouteService API (routing)
+- WAQI API (real-time air quality)
+- Open-Meteo API (weather data)
+- Simulated IoT sensor grid
 
-**Data & AI**
-
-* AQI sensor data
-* Pollution exposure modeling
-* AI prediction system
-* Ai Trained on Linear Regression
+**Deployment**
+- Backend: Render
+- Frontend: Vercel
 
 ---
 
@@ -143,34 +145,18 @@ EcoRoute
 └── README.md
 ```
 
----
+## 🚀 Running Locally
 
-# 🚀 Installation
-
-Clone the repository
-
-```
-git clone https://github.com/yourusername/ecoroute.git
-cd ecoroute
-```
-
-Install dependencies
-
-```
-npm install
-```
-
-Run the development server
-
-```
-npm run dev
-```
-
-Start backend
-
-```
+**Backend**
+```bash
+cd Backend
+pip install -r requirements.txt
 uvicorn main:app --reload
 ```
+
+**Frontend**
+
+Just open `Frontend/index.html` in your browser, or use Live Server in VS Code.
 
 ---
 

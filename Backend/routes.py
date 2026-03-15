@@ -1,251 +1,50 @@
-"""
-API Route Handlers for EcoRoute Backend
-"""
-
-from fastapi import APIRouter, Query, HTTPException
-from pydantic import BaseModel
-from datetime import datetime
-import httpx
-
-from sensor_simulator import generate_all_sensors, get_nearest_sensor
-from pollution_model import predict_pollution, predict_hourly_forecast
-from route_optimizer import generate_demo_routes, rank_routes
-
-router = APIRouter()
-
-# ── In-memory store for community reports ──
-community_reports = []
-
-# ── OpenRouteService config ──
-ORS_API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjQ3MjY5NmZlZTUxZjRjOWY4ODNmYTRkMWRlYzhjNWY3IiwiaCI6Im11cm11cjY0In0="
-ORS_BASE_URL = "https://api.openrouteservice.org/v2/directions"
-
-TRANSPORT_PROFILES = {
-    "walk": "foot-walking",
-    "cycle": "cycling-regular",
-    "drive": "driving-car",
-}
-
-
-# ───────── Route API ─────────
-@router.get("/route")
-async def get_route(
-    origin_lat: float = Query(..., description="Origin latitude"),
-    origin_lon: float = Query(..., description="Origin longitude"),
-    dest_lat: float = Query(..., description="Destination latitude"),
-    dest_lon: float = Query(..., description="Destination longitude"),
-    mode: str = Query("walk", description="Transport mode: walk, cycle, drive"),
-):
-    """
-    Get 3 routes between origin and destination
-    scored by pollution exposure and distance.
-    """
-
-    profile = TRANSPORT_PROFILES.get(mode, "foot-walking")
-
-    # Try OpenRouteService API
-    if ORS_API_KEY:
-        try:
-            async with httpx.AsyncClient(timeout=15) as client:
-                resp = await client.post(
-                    f"{ORS_BASE_URL}/{profile}/geojson",
-                    headers={
-                        "Authorization": ORS_API_KEY,
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "coordinates": [
-                            [origin_lon, origin_lat],
-                            [dest_lon, dest_lat],
-                        ],
-                        "alternative_routes": {
-                            "share_factor": 0.6,
-                            "target_count": 3
-                        }
-                    },
-                )
-
-                parsed_routes = []
-
-                if resp.status_code == 200:
-                    data = resp.json()
-                    features = data.get("features", [])
-
-                    for f in features:
-                        coords = f["geometry"]["coordinates"]
-                        if not coords or len(coords) < 2:
-                            continue
-                        parsed_routes.append({
-                            "geometry": {"coordinates": coords},
-                            "properties": {
-                                "summary": {
-                                    "distance": f["properties"]["summary"]["distance"],
-                                    "duration": f["properties"]["summary"]["duration"],
-                                }
-                            },
-                        })
-
-                # 2) If ORS returned fewer than 3, generate alternatives via
-                #    waypoint detours using the POST endpoint
-                if len(parsed_routes) < 3:
-                    mid_lat = (origin_lat + dest_lat) / 2
-                    mid_lon = (origin_lon + dest_lon) / 2
-
-                    waypoint_offsets = [
-                        (0.02, 0),
-                        (-0.02, 0),
-                    ]
-
-                    for off_lon, off_lat in waypoint_offsets:
-                        if len(parsed_routes) >= 3:
-                            break
-
-                        wp_lon = mid_lon + off_lon
-                        wp_lat = mid_lat + off_lat
-
-                        # Use POST endpoint with intermediate waypoint
-                        resp2 = await client.post(
-                            f"{ORS_BASE_URL}/{profile}/geojson",
-                            headers={
-                                "Authorization": ORS_API_KEY,
-                                "Content-Type": "application/json",
-                            },
-                            json={
-                                "coordinates": [
-                                    [origin_lon, origin_lat],
-                                    [wp_lon, wp_lat],
-                                    [dest_lon, dest_lat],
-                                ],
-                            },
-                        )
-
-                        if resp2.status_code == 200:
-                            data2 = resp2.json()
-                            features2 = data2.get("features", [])
-
-                            for f2 in features2:
-                                coords2 = f2["geometry"]["coordinates"]
-                                if not coords2 or len(coords2) < 2:
-                                    continue
-                                parsed_routes.append({
-                                    "geometry": {"coordinates": coords2},
-                                    "properties": {
-                                        "summary": {
-                                            "distance": f2["properties"]["summary"]["distance"],
-                                            "duration": f2["properties"]["summary"]["duration"],
-                                        }
-                                    },
-                                })
-
-                if parsed_routes:
-                    return rank_routes(parsed_routes[:3])
-
-        except Exception as e:
-            print(f"ORS API error: {e}")
-
-    # Fallback if ORS fails
-    return generate_demo_routes(origin_lat, origin_lon, dest_lat, dest_lon)
-
-
-# ───────── Pollution API ─────────
-@router.get("/pollution")
-async def get_pollution(
+@router.get("/live_conditions")
+async def live_conditions(
     lat: float = Query(..., description="Latitude"),
     lon: float = Query(..., description="Longitude"),
 ):
-    """
-    Get pollution data for a specific location.
-    """
+    """Get real-time AQI from WAQI and weather from Open-Meteo."""
 
-    reading = get_nearest_sensor(lat, lon)
+    waqi_token = os.getenv("WAQI_TOKEN")
+    if not waqi_token:
+        raise HTTPException(status_code=500, detail="WAQI_TOKEN not configured")
 
-    return {
-        "aqi": reading["aqi"],
-        "pm25": reading["pm25"],
-        "pm10": reading["pm10"],
-        "no2": reading["no2"],
-        "location": reading["name"],
-        "zone_type": reading["zone_type"],
-        "timestamp": reading["timestamp"],
-    }
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            aqi_res, weather_res = await asyncio.gather(
+                client.get(
+                    f"https://api.waqi.info/feed/geo:{lat};{lon}/?token={waqi_token}"
+                ),
+                client.get(
+                    f"https://api.open-meteo.com/v1/forecast"
+                    f"?latitude={lat}&longitude={lon}"
+                    f"&current=temperature_2m,relative_humidity_2m,wind_speed_10m"
+                ),
+            )
 
+        aqi_data = aqi_res.json()
+        weather_data = weather_res.json()
 
-# ───────── Sensor Grid API ─────────
-@router.get("/sensors")
-async def get_sensors():
-    """Get readings from all simulated IoT sensors."""
-    return {"sensors": generate_all_sensors(), "count": 25}
+        # Guard: WAQI returns status "ok" on success
+        if aqi_data.get("status") != "ok":
+            raise HTTPException(status_code=502, detail="WAQI API error")
 
+        iaqi = aqi_data["data"].get("iaqi", {})
+        current = weather_data.get("current", {})
 
-# ───────── AI Prediction API ─────────
-class PredictionRequest(BaseModel):
-    temperature: float = 31
-    humidity: float = 68
-    traffic: float = 70
-    hour: int = 18
+        return {
+            "aqi":         aqi_data["data"].get("aqi"),
+            "pm25":        iaqi.get("pm25", {}).get("v"),
+            "no2":         iaqi.get("no2",  {}).get("v"),
+            "pm10":        iaqi.get("pm10", {}).get("v"),
+            "temperature": current.get("temperature_2m"),
+            "humidity":    current.get("relative_humidity_2m"),
+            "wind_speed":  current.get("wind_speed_10m"),
+            "station":     aqi_data["data"].get("city", {}).get("name", "Unknown"),
+            "timestamp":   datetime.now().isoformat(),
+        }
 
-
-@router.post("/predict_pollution")
-async def predict(req: PredictionRequest):
-    """Predict PM2.5 level using the ML model."""
-    result = predict_pollution(req.temperature, req.humidity, req.traffic, req.hour)
-    return result
-
-
-# ───────── Hourly Forecast API ─────────
-class ForecastRequest(BaseModel):
-    temperature: float = 31
-    humidity: float = 68
-    traffic: float = 70
-    start_hour: int = 15
-    hours: int = 6
-
-
-@router.post("/forecast")
-async def forecast(req: ForecastRequest):
-    """Get multi-hour pollution forecast."""
-
-    return {
-        "forecast": predict_hourly_forecast(
-            req.temperature,
-            req.humidity,
-            req.traffic,
-            req.start_hour,
-            req.hours,
-        )
-    }
-
-
-# ───────── Community Reports API ─────────
-class PollutionReport(BaseModel):
-    lat: float
-    lon: float
-    description: str
-    severity: str = "moderate"
-    reporter: str = "anonymous"
-
-
-@router.post("/report_pollution")
-async def report_pollution(report: PollutionReport):
-    """Submit a crowdsourced pollution report."""
-
-    entry = {
-        "id": len(community_reports) + 1,
-        "lat": report.lat,
-        "lon": report.lon,
-        "description": report.description,
-        "severity": report.severity,
-        "reporter": report.reporter,
-        "timestamp": datetime.now().isoformat(),
-    }
-
-    community_reports.append(entry)
-
-    return {"status": "submitted", "report": entry}
-
-
-@router.get("/community_reports")
-async def get_community_reports():
-    """Get all community pollution reports."""
-
-    return {"reports": community_reports, "count": len(community_reports)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Live conditions fetch failed: {str(e)}")

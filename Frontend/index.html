@@ -1645,75 +1645,7 @@
       color: var(--t3)
     }
 
-    /* VIDEO AD */
-    #videoAd {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, .92);
-      backdrop-filter: blur(8px);
-      z-index: 9999;
-      display: flex;
-      align-items: center;
-      justify-content: center
-    }
-
-    .vbox {
-      position: relative;
-      width: 700px;
-      max-width: 94vw
-    }
-
-    .vad-lbl {
-      font-size: 11px;
-      color: rgba(255, 255, 255, .35);
-      letter-spacing: .8px;
-      text-transform: uppercase;
-      margin-bottom: 8px
-    }
-
-    .vcontent {
-      width: 100%;
-      aspect-ratio: 16/9;
-      border-radius: 18px;
-      overflow: hidden;
-      background: #000;
-      border: 1px solid rgba(255, 255, 255, .1);
-      display: flex;
-      align-items: center;
-      justify-content: center
-    }
-
-    .skip-wrap {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: 10px
-    }
-
-    .skip-btn {
-      padding: 9px 18px;
-      background: rgba(255, 255, 255, .1);
-      border: 1px solid rgba(255, 255, 255, .2);
-      color: white;
-      border-radius: 9px;
-      font-family: inherit;
-      font-size: 13px;
-      cursor: pointer;
-      transition: all .2s
-    }
-
-    .skip-btn:disabled {
-      opacity: .45;
-      cursor: not-allowed
-    }
-
-    .skip-btn:not(:disabled):hover {
-      background: rgba(255, 255, 255, .2)
-    }
-
-    @media(max-width:900px) {
-      .hero {
-        grid-template-columns: 1fr;
-        padding: 50px 20px 40px
+    40px
       }
 
       .hero-right {
@@ -1736,6 +1668,11 @@
       .span4 {
         grid-column: span 2
       }
+
+    @media(max-width:900px) {
+      .hero {
+        grid-template-columns: 1fr;
+        padding: 50px 20px 
 
       .cgrid,
       .pgrid {
@@ -1767,29 +1704,6 @@
 </head>
 
 <body>
-
-  <!-- VIDEO AD -->
-  <div id="videoAd">
-    <div class="vbox">
-      <div class="vad-lbl">Advertisement — EcoRoute</div>
-      <div class="vcontent">
-        <div style="text-align:center;color:rgba(255,255,255,.7);padding:32px">
-          <div style="font-size:48px;margin-bottom:12px">🌿</div>
-          <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:white;margin-bottom:8px">
-            EcoRoute</div>
-          <div style="font-size:15px;color:rgba(255,255,255,.8);margin-bottom:6px">AI-Powered Clean Air Navigation</div>
-          <div style="font-size:13px;color:rgba(255,255,255,.45)">Breathe smarter. Move cleaner. Live longer.</div>
-          <div
-            style="margin-top:18px;padding:10px 16px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);border-radius:10px;font-size:11px;color:#22c55e">
-            💡 Replace with your Canva MP4:<br><code>&lt;video autoplay muted src="ad.mp4"&gt;&lt;/video&gt;</code>
-          </div>
-        </div>
-      </div>
-      <div class="skip-wrap">
-        <button class="skip-btn" id="skipBtn" disabled>Skip in <span id="skipCount">5</span>s</button>
-      </div>
-    </div>
-  </div>
 
   <!-- NAV -->
   <nav>
@@ -2184,7 +2098,6 @@
     let adN = 5;
     const skipBtn = document.getElementById('skipBtn');
     const adT = setInterval(() => { adN--; document.getElementById('skipCount').textContent = adN; if (adN <= 0) { clearInterval(adT); skipBtn.disabled = false; skipBtn.textContent = 'Skip Ad ✕'; } }, 1000);
-    skipBtn.addEventListener('click', () => { const a = document.getElementById('videoAd'); a.style.opacity = '0'; a.style.transition = 'opacity .3s'; setTimeout(() => a.remove(), 300); });
 
     // PAGE NAV
     function showPage(name) {
@@ -2761,6 +2674,33 @@
       } catch (e) { toast('⚠ Failed to submit. Is backend running?', true); }
       btn.disabled = false; btn.textContent = '📤 Submit to City Dashboard';
     }
+    async function loadLiveConditions() {
+    // Jabalpur coordinates — or use browser geolocation
+    const lat = 23.1815, lon = 79.9864;
+    
+    try {
+        const data = await apiFetch(`/live_conditions?lat=${lat}&lon=${lon}`);
+        
+        // Update your dashboard elements
+        document.getElementById('city-aqi').textContent = data.aqi;
+        document.getElementById('city-pm25').textContent = data.pm25 ?? '—';
+        document.getElementById('city-temp').textContent = `${data.temperature}°C`;
+        document.getElementById('city-humidity').textContent = `${data.humidity}%`;
+        
+        // Color the AQI badge based on level
+        const aqiBadge = document.getElementById('aqi-badge');
+        if (data.aqi <= 50) aqiBadge.style.color = 'var(--green)';
+        else if (data.aqi <= 100) aqiBadge.style.color = 'var(--yellow)';
+        else if (data.aqi <= 150) aqiBadge.style.color = 'var(--orange)';
+        else aqiBadge.style.color = 'var(--red)';
+        
+    } catch(e) {
+        console.error('Live conditions fetch failed', e);
+    }
+}
+  // Call on load and refresh every 10 minutes
+  loadLiveConditions();
+  setInterval(loadLiveConditions, 10 * 60 * 1000);
 
     // ── INIT ──
     window.addEventListener('load', () => {

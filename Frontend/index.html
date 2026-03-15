@@ -2167,6 +2167,41 @@
         toast('⚠ Backend offline. Run uvicorn main:app --reload', true);
       }
     }
+    // ── LIVE CONDITIONS (WAQI + Open-Meteo) ──
+    async function loadLiveConditions() {
+      try {
+        const d = await api('/live_conditions?lat=23.1815&lon=79.9864');
+
+        // Hero AQI — override simulated value with real one
+        if (d.aqi) {
+          const heroEl = document.getElementById('heroAqi');
+          heroEl.textContent = d.aqi;
+          heroEl.style.color =
+            d.aqi <= 50  ? 'var(--green)'  :
+            d.aqi <= 100 ? 'var(--yellow)' :
+            d.aqi <= 150 ? 'var(--orange)' : 'var(--red)';
+        }
+
+        // Hero card PM2.5 bar
+        if (d.pm25) {
+          document.getElementById('fiv-pm25').textContent = d.pm25.toFixed(1) + ' µg/m³';
+          document.getElementById('fi-pm25').style.width = Math.min(d.pm25 / 150 * 100, 100) + '%';
+        }
+
+        // Hero card NO₂ bar
+        if (d.no2) {
+          document.getElementById('fiv-no2').textContent = d.no2.toFixed(1) + ' ppb';
+          document.getElementById('fi-no2').style.width = Math.min(d.no2 / 100 * 100, 100) + '%';
+        }
+
+        // Footer status with station name
+        document.getElementById('footerStatus').textContent =
+          `✅ Live AQI: ${d.aqi} · ${d.temperature}°C · ${d.humidity}% humidity · Station: ${d.station}`;
+
+      } catch(e) {
+        console.warn('Live conditions unavailable, using sensor data', e);
+      }
+    }
 
     // ── ROUTE PLANNER ──
     function initRouteMap() {
@@ -2705,7 +2740,9 @@
     // ── INIT ──
     window.addEventListener('load', () => {
       loadHomeData();
+      loadLiveConditions();
       setInterval(loadHomeData, 60000);
+      setInterval(loadLiveConditions, 10 * 60 * 1000); // refresh every 10 min
     });
   </script>
   <div id="toast"></div>
